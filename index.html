@@ -1,0 +1,138 @@
+<!doctype html>
+<html class="dark" lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Goonj x The Knowledge Corps present a Fundraiser Concert featuring student bands at The Raft, Koramangala on 23rd October 2026. Supporting education for the underprivileged." />
+    <title>Fundraiser Concert — Goonj x The Knowledge Corps | The Raft, Koramangala</title>
+
+    <!-- Google Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+
+    <!-- Tailwind Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "secondary-container": "#00a29a",
+              "tertiary": "#ffb2b6",
+              "secondary-fixed-dim": "#5dd9d0",
+              "surface-dim": "#15130e",
+              "inverse-on-surface": "#33302a",
+              "surface-container-lowest": "#100e09",
+              "inverse-surface": "#e8e2d8",
+              "on-primary-container": "#a49cf8",
+              "primary-fixed": "#e4dfff",
+              "on-primary-fixed": "#160264",
+              "surface": "#15130e",
+              "on-secondary-fixed": "#00201e",
+              "surface-container": "#221f19",
+              "on-primary-fixed-variant": "#433a8f",
+              "on-tertiary": "#67001a",
+              "on-secondary-container": "#00302d",
+              "primary": "#c6c0ff",
+              "tertiary-fixed-dim": "#ffb2b6",
+              "error-container": "#93000a",
+              "surface-bright": "#3c3932",
+              "on-surface-variant": "#c8c4d3",
+              "outline": "#928f9c",
+              "surface-container-low": "#1e1b16",
+              "surface-container-highest": "#37342e",
+              "outline-variant": "#474551",
+              "surface-tint": "#c6c0ff",
+              "primary-fixed-dim": "#c6c0ff",
+              "on-primary": "#2c2178",
+              "on-secondary-fixed-variant": "#00504c",
+              "inverse-primary": "#5b53a9",
+              "secondary-fixed": "#7cf6ec",
+              "on-tertiary-fixed-variant": "#920029",
+              "on-tertiary-fixed": "#40000d",
+              "surface-variant": "#37342e",
+              "primary-container": "#382f84",
+              "on-secondary": "#003734",
+              "tertiary-container": "#7e0022",
+              "background": "#15130e",
+              "on-tertiary-container": "#ff808b",
+              "on-error-container": "#ffdad6",
+              "tertiary-fixed": "#ffdadb",
+              "on-error": "#690005",
+              "surface-container-high": "#2c2a23",
+              "secondary": "#5dd9d0",
+              "on-surface": "#e8e2d8",
+              "on-background": "#e8e2d8",
+              "error": "#ffb4ab"
+            },
+            borderRadius: {
+              DEFAULT: "0.125rem",
+              lg: "0.25rem",
+              xl: "0.5rem",
+              full: "0.75rem"
+            },
+            spacing: {
+              "space-sm": "0.5rem",
+              "space-lg": "1.5rem",
+              "gutter": "1.25rem",
+              "margin": "2rem",
+              "margin-mobile": "1rem",
+              "space-xl": "2.5rem",
+              "space-xs": "0.25rem",
+              "space-md": "1rem",
+              "gutter-mobile": "0.875rem"
+            },
+            fontFamily: {
+              "label-lg": ["Space Mono", "monospace"],
+              "title-lg": ["Bricolage Grotesque", "sans-serif"],
+              "headline-lg-mobile": ["Bricolage Grotesque", "sans-serif"],
+              "title-md": ["Space Grotesk", "sans-serif"],
+              "label-md": ["Space Mono", "monospace"],
+              "body-md": ["Space Grotesk", "sans-serif"],
+              "headline-xl": ["Bricolage Grotesque", "sans-serif"],
+              "label-sm": ["Space Mono", "monospace"],
+              "headline-xl-mobile": ["Bricolage Grotesque", "sans-serif"],
+              "body-sm": ["Space Grotesk", "sans-serif"],
+              "body-lg": ["Space Grotesk", "sans-serif"],
+              "headline-md": ["Bricolage Grotesque", "sans-serif"],
+              "headline-lg": ["Bricolage Grotesque", "sans-serif"]
+            },
+            fontSize: {
+              "label-lg": ["14px", { lineHeight: "20px", letterSpacing: "0.05em", fontWeight: "700" }],
+              "title-lg": ["22px", { lineHeight: "30px", letterSpacing: "0.01em", fontWeight: "700" }],
+              "headline-lg-mobile": ["30px", { lineHeight: "36px", letterSpacing: "0em", fontWeight: "700" }],
+              "title-md": ["18px", { lineHeight: "26px", letterSpacing: "0.01em", fontWeight: "700" }],
+              "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.08em", fontWeight: "700" }],
+              "body-md": ["15px", { lineHeight: "23px", fontWeight: "400" }],
+              "headline-xl": ["64px", { lineHeight: "72px", letterSpacing: "-0.02em", fontWeight: "800" }],
+              "label-sm": ["10px", { lineHeight: "14px", letterSpacing: "0.1em", fontWeight: "700" }],
+              "headline-xl-mobile": ["40px", { lineHeight: "46px", letterSpacing: "-0.01em", fontWeight: "800" }],
+              "body-sm": ["13px", { lineHeight: "19px", fontWeight: "400" }],
+              "body-lg": ["17px", { lineHeight: "26px", fontWeight: "500" }],
+              "headline-md": ["28px", { lineHeight: "36px", letterSpacing: "0em", fontWeight: "700" }],
+              "headline-lg": ["44px", { lineHeight: "52px", letterSpacing: "-0.01em", fontWeight: "800" }]
+            }
+          }
+        }
+      };
+    </script>
+    <style>
+      @layer base {
+        html, body { margin: 0; padding: 0; }
+        body { overscroll-behavior: none; }
+        main > :first-child { margin-top: 0 !important; }
+        main > :last-child { margin-bottom: 0 !important; }
+      }
+      ::-webkit-scrollbar { display: none; }
+    </style>
+  </head>
+  <body class="bg-surface font-body-md text-body-md text-on-surface antialiased selection:bg-secondary-container selection:text-on-secondary-container">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
