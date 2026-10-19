@@ -2,6 +2,16 @@
 let memoryStore = {
   goal: 150000,
   raised: 77000,
+  settings: {
+    title: "MUSIC FOR A CHANGE",
+    size: "medium", // compact, medium, large, huge
+    theme: "default", // default (purple/yellow/teal), amber-gold, neon-cyan, retro-orange, monochrome
+    hideAmounts: false,
+    percentageMode: false,
+    barHeight: 28,
+    customColor: "",
+    squareShadow: true
+  },
   updatedAt: new Date().toISOString(),
   history: [
     { action: 'init', delta: 77000, resultingTotal: 77000, timestamp: new Date().toISOString(), note: 'Concert kickoff' }
@@ -29,10 +39,16 @@ export default async (req, context) => {
     try {
       const body = await req.json();
       if (typeof body.raised === "number") {
-        memoryStore.raised = body.raised;
+        memoryStore.raised = Math.max(0, body.raised);
       }
       if (typeof body.goal === "number") {
-        memoryStore.goal = body.goal;
+        memoryStore.goal = Math.max(1, body.goal);
+      }
+      if (body.settings && typeof body.settings === "object") {
+        memoryStore.settings = {
+          ...memoryStore.settings,
+          ...body.settings
+        };
       }
       if (body.action) {
         const delta = Number(body.delta) || 0;
@@ -41,7 +57,7 @@ export default async (req, context) => {
         } else if (body.action === 'subtract') {
           memoryStore.raised = Math.max(0, memoryStore.raised - delta);
         } else if (body.action === 'set') {
-          memoryStore.raised = delta;
+          memoryStore.raised = Math.max(0, delta);
         }
         memoryStore.history.unshift({
           action: body.action,

@@ -1,9 +1,19 @@
 // Live counter client sync utility (combines Netlify Function API + BroadcastChannel + LocalStorage)
-const STORAGE_KEY = "tkc_donation_counter_v1";
+const STORAGE_KEY = "tkc_donation_counter_v2";
 
 const defaultState = {
   goal: 150000,
   raised: 77000,
+  settings: {
+    title: "MUSIC FOR A CHANGE",
+    size: "medium", // compact, medium, large, huge
+    theme: "default", // default, amber-gold, neon-cyan, retro-orange, monochrome
+    hideAmounts: false,
+    percentageMode: false,
+    barHeight: 28,
+    customColor: "",
+    squareShadow: true
+  },
   updatedAt: new Date().toISOString(),
   history: [
     { action: "init", delta: 77000, resultingTotal: 77000, timestamp: new Date().toISOString(), note: "Kickoff" }
@@ -14,7 +24,15 @@ export function getLocalState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState;
-    return { ...defaultState, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw);
+    return {
+      ...defaultState,
+      ...parsed,
+      settings: {
+        ...defaultState.settings,
+        ...(parsed.settings || {})
+      }
+    };
   } catch {
     return defaultState;
   }
@@ -40,13 +58,13 @@ export async function fetchLiveState() {
   return getLocalState();
 }
 
-export async function updateLiveState({ action, delta, goal, raised, note }) {
+export async function updateLiveState({ action, delta, goal, raised, settings, note }) {
   let updated;
   try {
     const res = await fetch("/api/counter", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, delta, goal, raised, note })
+      body: JSON.stringify({ action, delta, goal, raised, settings, note })
     });
     if (res.ok) {
       updated = await res.json();
@@ -67,6 +85,7 @@ export async function updateLiveState({ action, delta, goal, raised, note }) {
       ...cur,
       goal: typeof goal === "number" ? goal : cur.goal,
       raised: newRaised,
+      settings: settings ? { ...cur.settings, ...settings } : cur.settings,
       updatedAt: new Date().toISOString(),
       history: [
         {
