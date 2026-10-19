@@ -24,7 +24,9 @@ export default async (req, context) => {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Content-Type": "application/json"
+    "Content-Type": "application/json",
+    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+    "Pragma": "no-cache"
   };
 
   if (req.method === "OPTIONS") {

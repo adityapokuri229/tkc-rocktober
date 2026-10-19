@@ -46,7 +46,13 @@ export function saveLocalState(state) {
 
 export async function fetchLiveState() {
   try {
-    const res = await fetch("/api/counter", { cache: "no-store" });
+    const res = await fetch(`/api/counter?_t=${Date.now()}`, {
+      cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache"
+      }
+    });
     if (res.ok) {
       const data = await res.json();
       saveLocalState(data);
