@@ -39,14 +39,14 @@ export default function Home() {
         {/* EXACT ORIGINAL SQUARE THERMOMETER BAR */}
         <div className="bg-surface-container p-space-md shadow-[4px_4px_0px_#100e09] border border-outline-variant/30">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-space-xs mb-space-xs">
-            <div className="flex items-center gap-space-xs">
+            <div className="flex items-center gap-2">
               <span className="font-label-md text-label-md uppercase text-on-surface">CROWDFUND PROGRESS</span>
-              <span className="bg-secondary-container text-on-secondary font-label-sm text-label-sm px-space-xs py-0.5 font-bold">
+              <span className="bg-secondary-container text-on-secondary font-label-md text-sm px-2.5 py-1 font-extrabold tracking-wide">
                 {pct}% REACHED
               </span>
             </div>
             {!hideAmounts && (
-              <div className="font-label-md text-label-md text-secondary tracking-wider font-bold">
+              <div className="font-label-lg text-lg text-secondary tracking-wider font-extrabold">
                 {percentageMode ? `${pct}%` : `₹${raisedFmt} RAISED`}
               </div>
             )}
