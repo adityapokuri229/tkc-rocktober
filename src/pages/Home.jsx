@@ -31,22 +31,24 @@ export default function Home() {
 
   return (
     <div className="bg-surface font-body-md text-body-md text-on-surface antialiased min-h-screen flex items-center justify-center p-4 sm:p-8">
-      <div className="w-full max-w-2xl">
+      <div className="w-full max-w-3xl">
         <h1 className="font-headline-lg text-headline-lg uppercase tracking-tight text-on-surface mb-6 text-center sm:text-left">
           {firstWords ? `${firstWords} ` : ""}<span className="text-secondary">{lastWord || title}</span>
         </h1>
 
         {/* EXACT ORIGINAL SQUARE THERMOMETER BAR */}
-        <div className="bg-surface-container p-space-md shadow-[4px_4px_0px_#100e09] border border-outline-variant/30">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-space-xs mb-space-xs">
-            <div className="flex items-center gap-2">
-              <span className="font-label-md text-label-md uppercase text-on-surface">CROWDFUND PROGRESS</span>
-              <span className="bg-secondary-container text-on-secondary font-label-md text-sm px-2.5 py-1 font-extrabold tracking-wide">
+        <div className="bg-surface-container p-6 sm:p-8 shadow-[6px_6px_0px_#100e09] border border-outline-variant/30">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-3">
+              <span className="font-label-md text-sm sm:text-base uppercase tracking-wider text-on-surface font-bold">
+                CROWDFUND PROGRESS
+              </span>
+              <span className="bg-secondary-container text-on-secondary font-label-md text-sm sm:text-base px-3 py-1 font-extrabold tracking-wide">
                 {pct}% REACHED
               </span>
             </div>
             {!hideAmounts && (
-              <div className="font-label-lg text-lg text-secondary tracking-wider font-extrabold">
+              <div className="font-label-lg text-base sm:text-lg text-secondary tracking-wider font-extrabold">
                 {percentageMode ? `${pct}%` : `₹${raisedFmt} RAISED`}
               </div>
             )}
@@ -54,8 +56,8 @@ export default function Home() {
 
           {/* Meter Bar: Strict sharp rectangle/square bar */}
           <div
-            className="w-full bg-surface-container-lowest p-1 shadow-inner"
-            style={{ height: `${barHeight}px` }}
+            className="w-full bg-surface-container-lowest p-1.5 shadow-inner"
+            style={{ height: `${Math.max(barHeight, 36)}px` }}
           >
             <div
               className="h-full bg-gradient-to-r from-secondary to-tertiary transition-all duration-700 ease-out"
@@ -65,9 +67,9 @@ export default function Home() {
 
           {/* Target Goal & Remaining Display (Controlled by showTarget toggle) */}
           {settings.showTarget !== false && !hideAmounts && (
-            <div className="flex justify-between items-center mt-3 pt-2.5 border-t border-outline-variant/20 font-label-sm text-xs uppercase tracking-wider text-outline">
-              <span className="flex items-center gap-1.5 font-bold text-on-surface-variant">
-                <span className="w-1.5 h-1.5 bg-secondary inline-block"></span>
+            <div className="flex justify-between items-center mt-4 pt-3 border-t border-outline-variant/20 font-label-md text-xs sm:text-sm uppercase tracking-wider text-outline">
+              <span className="flex items-center gap-2 font-bold text-on-surface-variant">
+                <span className="w-2 h-2 bg-secondary inline-block"></span>
                 TARGET: ₹{goal.toLocaleString("en-IN")}
               </span>
               <span className="font-bold text-secondary">
