@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { fetchLiveState, updateLiveState, getLocalState } from "../lib/liveCounter.js";
+import { subscribeToCounter, updateCounterInFirebase, defaultState } from "../lib/firebase.js";
 
 const SIZES = [
   { id: "compact", name: "Compact" },
@@ -10,7 +10,7 @@ const SIZES = [
 ];
 
 export default function Admin() {
-  const [counter, setCounter] = useState(() => getLocalState());
+  const [counter, setCounter] = useState(defaultState);
   const [addAmount, setAddAmount] = useState("");
   const [subtractAmount, setSubtractAmount] = useState("");
   const [targetGoalInput, setTargetGoalInput] = useState("");
@@ -20,22 +20,18 @@ export default function Admin() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetchLiveState().then((data) => {
+    const unsubscribe = subscribeToCounter((data) => {
       if (data) {
         setCounter(data);
-        setTargetGoalInput(data.goal || 150000);
-        setCurrentAmountInput(data.raised || 77000);
-        setTitleInput(data.settings?.title || "MUSIC FOR A CHANGE");
+        setTargetGoalInput((prev) => (prev === "" ? data.goal : prev));
+        setCurrentAmountInput((prev) => (prev === "" ? data.raised : prev));
+        setTitleInput((prev) => (prev === "" ? (data.settings?.title || "MUSIC FOR A CHANGE") : prev));
       }
     });
 
-    const interval = setInterval(() => {
-      fetchLiveState().then((data) => {
-        if (data) setCounter(data);
-      });
-    }, 2500);
-
-    return () => clearInterval(interval);
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const showFeedback = (msg) => {
@@ -49,9 +45,8 @@ export default function Admin() {
       ...(counter.settings || {}),
       ...patch
     };
-    const updated = await updateLiveState({
-      settings: newSettings,
-      note: "Updated live display settings"
+    const updated = await updateCounterInFirebase({
+      settings: newSettings
     });
     setCounter(updated);
     setLoading(false);
@@ -63,10 +58,9 @@ export default function Admin() {
     const val = Number(addAmount);
     if (!val || val <= 0) return;
     setLoading(true);
-    const updated = await updateLiveState({
+    const updated = await updateCounterInFirebase({
       action: "add",
-      delta: val,
-      note: `Added ₹${val.toLocaleString("en-IN")}`
+      delta: val
     });
     setCounter(updated);
     setCurrentAmountInput(updated.raised);
@@ -80,10 +74,9 @@ export default function Admin() {
     const val = Number(subtractAmount);
     if (!val || val <= 0) return;
     setLoading(true);
-    const updated = await updateLiveState({
+    const updated = await updateCounterInFirebase({
       action: "subtract",
-      delta: val,
-      note: `Deducted ₹${val.toLocaleString("en-IN")}`
+      delta: val
     });
     setCounter(updated);
     setCurrentAmountInput(updated.raised);
@@ -97,10 +90,9 @@ export default function Admin() {
     const val = Number(currentAmountInput);
     if (isNaN(val) || val < 0) return;
     setLoading(true);
-    const updated = await updateLiveState({
+    const updated = await updateCounterInFirebase({
       action: "set",
-      delta: val,
-      note: `Set total directly to ₹${val.toLocaleString("en-IN")}`
+      delta: val
     });
     setCounter(updated);
     setLoading(false);
@@ -112,9 +104,8 @@ export default function Admin() {
     const val = Number(targetGoalInput);
     if (!val || val <= 0) return;
     setLoading(true);
-    const updated = await updateLiveState({
-      goal: val,
-      note: `Goal updated to ₹${val.toLocaleString("en-IN")}`
+    const updated = await updateCounterInFirebase({
+      goal: val
     });
     setCounter(updated);
     setLoading(false);
@@ -216,7 +207,7 @@ export default function Admin() {
                 <button
                   key={amt}
                   type="button"
-                  onClick={() => updateLiveState({ action: "add", delta: amt }).then((u) => { setCounter(u); showFeedback(`+₹${amt} added!`); })}
+                  onClick={() => updateCounterInFirebase({ action: "add", delta: amt }).then((u) => { setCounter(u); showFeedback(`+₹${amt} added!`); })}
                   className="bg-surface-container-highest hover:bg-secondary hover:text-on-secondary text-on-surface font-label-sm text-xs px-2.5 py-1 transition-colors font-bold border border-outline-variant/20"
                 >
                   +₹{amt}
@@ -252,7 +243,7 @@ export default function Admin() {
                 <button
                   key={amt}
                   type="button"
-                  onClick={() => updateLiveState({ action: "subtract", delta: amt }).then((u) => { setCounter(u); showFeedback(`-₹${amt} deducted!`); })}
+                  onClick={() => updateCounterInFirebase({ action: "subtract", delta: amt }).then((u) => { setCounter(u); showFeedback(`-₹${amt} deducted!`); })}
                   disabled={raised < amt}
                   className="bg-surface-container-highest hover:bg-tertiary hover:text-on-tertiary text-tertiary font-label-sm text-xs px-2.5 py-1 transition-colors font-bold border border-tertiary/20 disabled:opacity-30"
                 >
@@ -386,7 +377,20 @@ export default function Admin() {
           </div>
 
           {/* Toggles */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-outline-variant/20">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-outline-variant/20">
+            <label className="flex items-center gap-3 bg-surface-container-lowest p-3 border border-outline-variant/30 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.showTarget !== false}
+                onChange={(e) => handleUpdateSettings({ showTarget: e.target.checked })}
+                className="w-4 h-4 accent-[#5dd9d0]"
+              />
+              <div>
+                <div className="font-label-md text-xs uppercase font-bold text-on-surface">Show Target</div>
+                <div className="font-body-sm text-[11px] text-on-surface-variant">Display target amount &amp; remaining goal</div>
+              </div>
+            </label>
+
             <label className="flex items-center gap-3 bg-surface-container-lowest p-3 border border-outline-variant/30 cursor-pointer">
               <input
                 type="checkbox"

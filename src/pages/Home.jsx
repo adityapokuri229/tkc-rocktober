@@ -1,39 +1,16 @@
 import { useState, useEffect } from "react";
-import { fetchLiveState, getLocalState } from "../lib/liveCounter.js";
+import { subscribeToCounter, defaultState } from "../lib/firebase.js";
 
 export default function Home() {
-  const [counterData, setCounterData] = useState(() => getLocalState());
+  const [counterData, setCounterData] = useState(defaultState);
 
   useEffect(() => {
-    fetchLiveState().then((data) => {
+    const unsubscribe = subscribeToCounter((data) => {
       if (data) setCounterData(data);
     });
 
-    const interval = setInterval(() => {
-      fetchLiveState().then((data) => {
-        if (data) setCounterData(data);
-      });
-    }, 2000);
-
-    let bc;
-    try {
-      if (typeof BroadcastChannel !== "undefined") {
-        bc = new BroadcastChannel("donation_counter_channel");
-        bc.onmessage = (event) => {
-          if (event.data) setCounterData(event.data);
-        };
-      }
-    } catch {}
-
-    const handleCustomUpdate = (e) => {
-      if (e.detail) setCounterData(e.detail);
-    };
-    window.addEventListener("donation_counter_updated", handleCustomUpdate);
-
     return () => {
-      clearInterval(interval);
-      if (bc) bc.close();
-      window.removeEventListener("donation_counter_updated", handleCustomUpdate);
+      unsubscribe();
     };
   }, []);
 
@@ -85,6 +62,19 @@ export default function Home() {
               style={{ width: `${pct}%` }}
             ></div>
           </div>
+
+          {/* Target Goal & Remaining Display (Controlled by showTarget toggle) */}
+          {settings.showTarget !== false && !hideAmounts && (
+            <div className="flex justify-between items-center mt-3 pt-2.5 border-t border-outline-variant/20 font-label-sm text-xs uppercase tracking-wider text-outline">
+              <span className="flex items-center gap-1.5 font-bold text-on-surface-variant">
+                <span className="w-1.5 h-1.5 bg-secondary inline-block"></span>
+                TARGET: ₹{goal.toLocaleString("en-IN")}
+              </span>
+              <span className="font-bold text-secondary">
+                REMAINING: ₹{Math.max(0, goal - raised).toLocaleString("en-IN")}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>
