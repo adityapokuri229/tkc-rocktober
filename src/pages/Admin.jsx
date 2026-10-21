@@ -72,6 +72,35 @@ export default function Admin() {
     };
   }, []);
 
+  const handleKeypadPress = (val) => {
+    setPinError("");
+    if (val === "clear") {
+      setPin("");
+      return;
+    }
+    if (val === "backspace") {
+      setPin((prev) => prev.slice(0, -1));
+      return;
+    }
+    if (pin.length >= 4) return;
+    const nextPin = pin + val;
+    setPin(nextPin);
+    if (nextPin.length === 4) {
+      if (nextPin === "1947") {
+        setTimeout(() => {
+          setIsAuthenticated(true);
+          setPin("");
+          setPinError("");
+        }, 150);
+      } else {
+        setTimeout(() => {
+          setPinError("Incorrect PIN. Please try again.");
+          setPin("");
+        }, 200);
+      }
+    }
+  };
+
   const handlePinSubmit = (e) => {
     e?.preventDefault();
     if (pin === "1947") {
@@ -118,7 +147,6 @@ export default function Admin() {
         });
         setUploading(false);
         showFeedback(`Uploaded "${file.name}" to media library!`);
-        // If currently in media pane, immediately show it
         if (counter.activePane === "media") {
           await setActivePane("media", newItem.id);
         }
@@ -252,47 +280,82 @@ export default function Admin() {
     await handleUpdateSettings({ title: titleInput });
   };
 
-  // ─── 1. PASSWORD GATE (IF NOT AUTHENTICATED) ───
+  // ─── 1. PASSWORD GATE WITH NUMERIC KEYPAD ───
   if (!isAuthenticated) {
     return (
       <div className="bg-surface font-body-md text-on-surface min-h-screen flex items-center justify-center p-4">
-        <div className="w-full max-w-sm bg-surface-container p-8 shadow-[6px_6px_0px_#100e09] border border-outline-variant/30 text-center">
-          <div className="w-12 h-12 bg-surface-container-highest border border-secondary text-secondary font-headline-lg flex items-center justify-center mx-auto mb-4 font-bold">
+        <div className="w-full max-w-xs bg-surface-container p-6 sm:p-8 shadow-[6px_6px_0px_#100e09] border border-outline-variant/30 text-center">
+          <div className="w-12 h-12 bg-surface-container-highest border border-secondary text-secondary font-headline-lg flex items-center justify-center mx-auto mb-3 font-bold text-xl">
             🔒
           </div>
-          <h2 className="font-headline-md text-xl uppercase tracking-tight text-on-surface mb-1 font-bold">
+          <h2 className="font-headline-md text-lg uppercase tracking-tight text-on-surface mb-1 font-bold">
             ADMIN ACCESS
           </h2>
-          <p className="font-label-sm text-xs text-outline uppercase mb-6">
-            Enter 4-digit PIN to unlock control panel
+          <p className="font-label-sm text-[11px] text-outline uppercase mb-4">
+            Enter 4-digit PIN on keypad
           </p>
 
-          <form onSubmit={handlePinSubmit} className="flex flex-col gap-4">
-            <input
-              type="password"
-              inputMode="numeric"
-              maxLength={4}
-              placeholder="••••"
-              value={pin}
-              autoFocus
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
-              className="bg-surface-container-lowest border border-outline-variant/40 px-4 py-3 text-center text-2xl tracking-[0.5em] font-headline-lg text-secondary outline-none focus:border-secondary"
-            />
-            {pinError && (
-              <span className="font-label-sm text-xs text-[#ffb4ab] font-bold">
-                {pinError}
-              </span>
-            )}
-            <button
-              type="submit"
-              disabled={pin.length < 4}
-              className="bg-secondary text-on-secondary font-label-md uppercase font-bold py-3 hover:bg-secondary-fixed transition-colors disabled:opacity-40"
-            >
-              Unlock Console
-            </button>
-          </form>
+          {/* PIN Indicators */}
+          <div className="flex justify-center gap-3 mb-4">
+            {[0, 1, 2, 3].map((idx) => (
+              <div
+                key={idx}
+                className={`w-4 h-4 border transition-all ${
+                  pin.length > idx
+                    ? "bg-secondary border-secondary scale-110 shadow-[2px_2px_0px_#100e09]"
+                    : "bg-surface-container-lowest border-outline-variant/50"
+                }`}
+              />
+            ))}
+          </div>
 
-          <div className="mt-6 pt-4 border-t border-outline-variant/20">
+          {pinError && (
+            <div className="font-label-sm text-xs text-[#ffb4ab] font-bold mb-3">
+              {pinError}
+            </div>
+          )}
+
+          {/* Interactive Numeric Keypad */}
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            {["1", "2", "3", "4", "5", "6", "7", "8", "9", "clear", "0", "backspace"].map((k) => {
+              if (k === "clear") {
+                return (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => handleKeypadPress("clear")}
+                    className="bg-surface-container-lowest hover:bg-surface-container-highest border border-outline-variant/30 text-outline hover:text-on-surface font-label-md text-xs uppercase font-bold py-3 transition-colors active:scale-95"
+                  >
+                    CLR
+                  </button>
+                );
+              }
+              if (k === "backspace") {
+                return (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => handleKeypadPress("backspace")}
+                    className="bg-surface-container-lowest hover:bg-surface-container-highest border border-outline-variant/30 text-outline hover:text-on-surface font-label-md text-sm font-bold py-3 transition-colors active:scale-95"
+                  >
+                    ⌫
+                  </button>
+                );
+              }
+              return (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => handleKeypadPress(k)}
+                  className="bg-surface-container-lowest hover:bg-secondary hover:text-on-secondary border border-outline-variant/40 text-on-surface font-headline-md text-lg font-bold py-3 transition-colors active:scale-95 shadow-[2px_2px_0px_#100e09]"
+                >
+                  {k}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="pt-3 border-t border-outline-variant/20">
             <Link
               to="/"
               className="font-label-sm text-xs uppercase text-outline hover:text-secondary hover:underline"
@@ -423,215 +486,12 @@ export default function Admin() {
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════
-            SECTION A: MEDIA PANE CONTROLS & UPLOAD (DRAG AND DROP)
+            SECTION A: DONATION COUNTER CONTROLS (INCLUDES SIZE OPTIONS)
            ═══════════════════════════════════════════════════════════════ */}
         <div className="bg-surface-container p-6 shadow-[4px_4px_0px_#100e09] border border-outline-variant/30 mb-8">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-headline-md text-lg uppercase tracking-tight text-on-surface font-bold">
-              Media Pane: Images &amp; Videos
-            </h3>
-            {activePane === "media" && (
-              <span className="bg-secondary text-on-secondary font-label-sm text-xs px-2 py-0.5 font-bold uppercase">
-                Active on TV
-              </span>
-            )}
-          </div>
-
-          {/* Drag & Drop Upload Zone */}
-          <div
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-outline-variant/60 hover:border-secondary p-8 text-center cursor-pointer bg-surface-container-lowest transition-colors mb-4"
-          >
-            <input
-              type="file"
-              ref={fileInputRef}
-              accept="image/*,video/*"
-              onChange={(e) => {
-                if (e.target.files?.[0]) processFile(e.target.files[0]);
-              }}
-              className="hidden"
-            />
-            <div className="text-3xl mb-2 text-secondary">📁</div>
-            <div className="font-label-md text-sm uppercase text-on-surface font-bold mb-1">
-              {uploading ? "Processing file..." : "Drag & Drop Image or Video Here"}
-            </div>
-            <p className="font-body-sm text-xs text-outline">
-              or click to browse from your device (PNG, JPG, MP4, WebM)
-            </p>
-          </div>
-
-          {/* URL Add fallback */}
-          <form onSubmit={handleAddMediaUrl} className="flex flex-col sm:flex-row gap-2 mb-6">
-            <input
-              type="url"
-              placeholder="Or paste public Image/Video URL (https://...)"
-              value={mediaUrlInput}
-              onChange={(e) => setMediaUrlInput(e.target.value)}
-              className="flex-1 bg-surface-container-lowest border border-outline-variant/40 px-3 py-2 text-on-surface font-label-md text-xs outline-none focus:border-secondary"
-            />
-            <select
-              value={mediaTypeInput}
-              onChange={(e) => setMediaTypeInput(e.target.value)}
-              className="bg-surface-container-lowest border border-outline-variant/40 px-3 py-2 text-on-surface font-label-md text-xs outline-none"
-            >
-              <option value="image">Image</option>
-              <option value="video">Video</option>
-            </select>
-            <button
-              type="submit"
-              disabled={!mediaUrlInput.trim()}
-              className="bg-surface-container-highest hover:bg-secondary hover:text-on-secondary text-secondary font-label-md text-xs uppercase font-bold px-4 py-2 border border-secondary/30 disabled:opacity-40"
-            >
-              + Add URL
-            </button>
-          </form>
-
-          {/* Media Items Gallery */}
-          <div className="border-t border-outline-variant/20 pt-4">
-            <div className="font-label-sm text-xs text-outline uppercase font-bold mb-3">
-              Media Library ({mediaItems.length} items) — Click item to display on TV:
-            </div>
-
-            {mediaItems.length === 0 ? (
-              <div className="p-4 bg-surface-container-lowest text-center text-xs text-outline font-label-sm uppercase">
-                No images or videos added yet. Drag and drop any media above.
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {mediaItems.map((item) => {
-                  const isSelected = activePane === "media" && counter.selectedMediaId === item.id;
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={() => handleSelectPane("media", item.id)}
-                      className={`relative group cursor-pointer border p-2 bg-surface-container-lowest transition-all ${
-                        isSelected
-                          ? "border-secondary ring-2 ring-secondary shadow-[3px_3px_0px_#100e09]"
-                          : "border-outline-variant/40 hover:border-secondary"
-                      }`}
-                    >
-                      <div className="w-full h-24 bg-surface flex items-center justify-center overflow-hidden mb-1.5">
-                        {item.type === "video" ? (
-                          <div className="text-center text-xs font-label-sm text-secondary">
-                            ▶ VIDEO
-                          </div>
-                        ) : (
-                          <img
-                            src={item.url}
-                            alt={item.name}
-                            className="w-full h-full object-cover"
-                          />
-                        )}
-                      </div>
-                      <div className="flex items-center justify-between text-[11px] font-label-sm">
-                        <span className="truncate max-w-[100px] text-on-surface font-bold">
-                          {item.name}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={(e) => handleDeleteMedia(item.id, e)}
-                          className="text-[#ffb4ab] hover:underline"
-                          title="Delete"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                      {isSelected && (
-                        <div className="absolute top-1 left-1 bg-secondary text-on-secondary font-label-sm text-[9px] px-1 font-bold">
-                          ON TV
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ═══════════════════════════════════════════════════════════════
-            SECTION B: CUSTOM TEXT PANE CONTROLS
-           ═══════════════════════════════════════════════════════════════ */}
-        <div className="bg-surface-container p-6 shadow-[4px_4px_0px_#100e09] border border-outline-variant/30 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-headline-md text-lg uppercase tracking-tight text-on-surface font-bold">
-              Custom Text Pane
-            </h3>
-            {activePane === "custom" && (
-              <span className="bg-secondary text-on-secondary font-label-sm text-xs px-2 py-0.5 font-bold uppercase">
-                Active on TV
-              </span>
-            )}
-          </div>
-
-          <form onSubmit={handleSaveCustomText} className="flex flex-col gap-3">
-            <div>
-              <label className="block font-label-sm text-xs text-outline uppercase font-bold mb-1">
-                Main Heading
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. WELCOME TO THE CONCERT"
-                value={headingInput}
-                onChange={(e) => setHeadingInput(e.target.value)}
-                className="w-full bg-surface-container-lowest border border-outline-variant/40 px-3 py-2 text-on-surface font-label-md text-sm outline-none focus:border-secondary"
-              />
-            </div>
-
-            <div>
-              <label className="block font-label-sm text-xs text-outline uppercase font-bold mb-1">
-                Subheading / Tagline
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. Next Band: The Groovy Syndicate • 8:30 PM"
-                value={subheadingInput}
-                onChange={(e) => setSubheadingInput(e.target.value)}
-                className="w-full bg-surface-container-lowest border border-outline-variant/40 px-3 py-2 text-on-surface font-label-md text-sm outline-none focus:border-secondary"
-              />
-            </div>
-
-            <div>
-              <label className="block font-label-sm text-xs text-outline uppercase font-bold mb-1">
-                Body / Notice / QR Description
-              </label>
-              <textarea
-                rows={3}
-                placeholder="e.g. Scan the QR code on your tables to donate. All proceeds go to underprivileged children's education."
-                value={bodyInput}
-                onChange={(e) => setBodyInput(e.target.value)}
-                className="w-full bg-surface-container-lowest border border-outline-variant/40 px-3 py-2 text-on-surface font-body-md text-sm outline-none focus:border-secondary"
-              />
-            </div>
-
-            <div className="flex gap-2 justify-end mt-2">
-              <button
-                type="button"
-                onClick={() => handleSelectPane("custom")}
-                className="bg-surface-container-highest hover:bg-secondary hover:text-on-secondary text-secondary font-label-md uppercase text-xs px-4 py-2 font-bold border border-secondary/30"
-              >
-                Switch TV to Custom Text
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="bg-secondary text-on-secondary font-label-md uppercase text-xs px-5 py-2 font-bold hover:bg-secondary-fixed transition-colors"
-              >
-                Save &amp; Update Live
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* ═══════════════════════════════════════════════════════════════
-            SECTION C: DONATION COUNTER CONTROLS
-           ═══════════════════════════════════════════════════════════════ */}
-        <div className="bg-surface-container p-6 shadow-[4px_4px_0px_#100e09] border border-outline-variant/30 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-headline-md text-lg uppercase tracking-tight text-on-surface font-bold">
-              Donation Counter Pane
+              Donation Counter Pane Controls
             </h3>
             {activePane === "counter" && (
               <span className="bg-secondary text-on-secondary font-label-sm text-xs px-2 py-0.5 font-bold uppercase">
@@ -789,6 +649,34 @@ export default function Admin() {
             </form>
           </div>
 
+          {/* ─── SIZE OPTIONS FOR DONATION PANE ─── */}
+          <div className="mb-6 bg-surface-container-lowest p-4 border border-outline-variant/30">
+            <div className="flex items-center justify-between mb-2">
+              <label className="block font-label-sm text-xs text-outline uppercase font-bold">
+                Screen Size Mode (TV / Projector Scaling)
+              </label>
+              <span className="font-label-sm text-xs text-secondary font-bold uppercase">
+                Active: {settings.size || "medium"}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {SIZES.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => handleUpdateSettings({ size: s.id })}
+                  className={`py-2 px-3 font-label-md text-xs uppercase font-bold border transition-colors ${
+                    (settings.size || "medium") === s.id
+                      ? "bg-secondary text-on-secondary border-secondary shadow-[2px_2px_0px_#100e09]"
+                      : "bg-surface text-on-surface border-outline-variant/40 hover:border-secondary"
+                  }`}
+                >
+                  {s.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Heading & Toggles */}
           <div className="border-t border-outline-variant/20 pt-4">
             <form onSubmit={handleSaveTitle} className="mb-4">
@@ -853,6 +741,209 @@ export default function Admin() {
               </label>
             </div>
           </div>
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════════
+            SECTION B: MEDIA PANE CONTROLS & UPLOAD (DRAG AND DROP)
+           ═══════════════════════════════════════════════════════════════ */}
+        <div className="bg-surface-container p-6 shadow-[4px_4px_0px_#100e09] border border-outline-variant/30 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-headline-md text-lg uppercase tracking-tight text-on-surface font-bold">
+              Media Pane: Images &amp; Videos (Full Size on TV)
+            </h3>
+            {activePane === "media" && (
+              <span className="bg-secondary text-on-secondary font-label-sm text-xs px-2 py-0.5 font-bold uppercase">
+                Active on TV
+              </span>
+            )}
+          </div>
+
+          {/* Drag & Drop Upload Zone */}
+          <div
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            className="border-2 border-dashed border-outline-variant/60 hover:border-secondary p-8 text-center cursor-pointer bg-surface-container-lowest transition-colors mb-4"
+          >
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*,video/*"
+              onChange={(e) => {
+                if (e.target.files?.[0]) processFile(e.target.files[0]);
+              }}
+              className="hidden"
+            />
+            <div className="text-3xl mb-2 text-secondary">📁</div>
+            <div className="font-label-md text-sm uppercase text-on-surface font-bold mb-1">
+              {uploading ? "Processing file..." : "Drag & Drop Image or Video Here"}
+            </div>
+            <p className="font-body-sm text-xs text-outline">
+              or click to browse from your device (PNG, JPG, MP4, WebM)
+            </p>
+          </div>
+
+          {/* URL Add fallback */}
+          <form onSubmit={handleAddMediaUrl} className="flex flex-col sm:flex-row gap-2 mb-6">
+            <input
+              type="url"
+              placeholder="Or paste public Image/Video URL (https://...)"
+              value={mediaUrlInput}
+              onChange={(e) => setMediaUrlInput(e.target.value)}
+              className="flex-1 bg-surface-container-lowest border border-outline-variant/40 px-3 py-2 text-on-surface font-label-md text-xs outline-none focus:border-secondary"
+            />
+            <select
+              value={mediaTypeInput}
+              onChange={(e) => setMediaTypeInput(e.target.value)}
+              className="bg-surface-container-lowest border border-outline-variant/40 px-3 py-2 text-on-surface font-label-md text-xs outline-none"
+            >
+              <option value="image">Image</option>
+              <option value="video">Video</option>
+            </select>
+            <button
+              type="submit"
+              disabled={!mediaUrlInput.trim()}
+              className="bg-surface-container-highest hover:bg-secondary hover:text-on-secondary text-secondary font-label-md text-xs uppercase font-bold px-4 py-2 border border-secondary/30 disabled:opacity-40"
+            >
+              + Add URL
+            </button>
+          </form>
+
+          {/* Media Items Gallery */}
+          <div className="border-t border-outline-variant/20 pt-4">
+            <div className="font-label-sm text-xs text-outline uppercase font-bold mb-3">
+              Media Library ({mediaItems.length} items) — Click item to display on TV:
+            </div>
+
+            {mediaItems.length === 0 ? (
+              <div className="p-4 bg-surface-container-lowest text-center text-xs text-outline font-label-sm uppercase">
+                No images or videos added yet. Drag and drop any media above.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {mediaItems.map((item) => {
+                  const isSelected = activePane === "media" && counter.selectedMediaId === item.id;
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => handleSelectPane("media", item.id)}
+                      className={`relative group cursor-pointer border p-2 bg-surface-container-lowest transition-all ${
+                        isSelected
+                          ? "border-secondary ring-2 ring-secondary shadow-[3px_3px_0px_#100e09]"
+                          : "border-outline-variant/40 hover:border-secondary"
+                      }`}
+                    >
+                      <div className="w-full h-24 bg-surface flex items-center justify-center overflow-hidden mb-1.5">
+                        {item.type === "video" ? (
+                          <div className="text-center text-xs font-label-sm text-secondary">
+                            ▶ VIDEO
+                          </div>
+                        ) : (
+                          <img
+                            src={item.url}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] font-label-sm">
+                        <span className="truncate max-w-[100px] text-on-surface font-bold">
+                          {item.name}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteMedia(item.id, e)}
+                          className="text-[#ffb4ab] hover:underline"
+                          title="Delete"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      {isSelected && (
+                        <div className="absolute top-1 left-1 bg-secondary text-on-secondary font-label-sm text-[9px] px-1 font-bold">
+                          ON TV
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════════
+            SECTION C: CUSTOM TEXT PANE CONTROLS
+           ═══════════════════════════════════════════════════════════════ */}
+        <div className="bg-surface-container p-6 shadow-[4px_4px_0px_#100e09] border border-outline-variant/30 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-headline-md text-lg uppercase tracking-tight text-on-surface font-bold">
+              Custom Text Pane
+            </h3>
+            {activePane === "custom" && (
+              <span className="bg-secondary text-on-secondary font-label-sm text-xs px-2 py-0.5 font-bold uppercase">
+                Active on TV
+              </span>
+            )}
+          </div>
+
+          <form onSubmit={handleSaveCustomText} className="flex flex-col gap-3">
+            <div>
+              <label className="block font-label-sm text-xs text-outline uppercase font-bold mb-1">
+                Main Heading
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. WELCOME TO THE CONCERT"
+                value={headingInput}
+                onChange={(e) => setHeadingInput(e.target.value)}
+                className="w-full bg-surface-container-lowest border border-outline-variant/40 px-3 py-2 text-on-surface font-label-md text-sm outline-none focus:border-secondary"
+              />
+            </div>
+
+            <div>
+              <label className="block font-label-sm text-xs text-outline uppercase font-bold mb-1">
+                Subheading / Tagline
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Next Band: The Groovy Syndicate • 8:30 PM"
+                value={subheadingInput}
+                onChange={(e) => setSubheadingInput(e.target.value)}
+                className="w-full bg-surface-container-lowest border border-outline-variant/40 px-3 py-2 text-on-surface font-label-md text-sm outline-none focus:border-secondary"
+              />
+            </div>
+
+            <div>
+              <label className="block font-label-sm text-xs text-outline uppercase font-bold mb-1">
+                Body / Notice / QR Description
+              </label>
+              <textarea
+                rows={3}
+                placeholder="e.g. Scan the QR code on your tables to donate. All proceeds go to underprivileged children's education."
+                value={bodyInput}
+                onChange={(e) => setBodyInput(e.target.value)}
+                className="w-full bg-surface-container-lowest border border-outline-variant/40 px-3 py-2 text-on-surface font-body-md text-sm outline-none focus:border-secondary"
+              />
+            </div>
+
+            <div className="flex gap-2 justify-end mt-2">
+              <button
+                type="button"
+                onClick={() => handleSelectPane("custom")}
+                className="bg-surface-container-highest hover:bg-secondary hover:text-on-secondary text-secondary font-label-md uppercase text-xs px-4 py-2 font-bold border border-secondary/30"
+              >
+                Switch TV to Custom Text
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="bg-secondary text-on-secondary font-label-md uppercase text-xs px-5 py-2 font-bold hover:bg-secondary-fixed transition-colors"
+              >
+                Save &amp; Update Live
+              </button>
+            </div>
+          </form>
         </div>
       </div>
 

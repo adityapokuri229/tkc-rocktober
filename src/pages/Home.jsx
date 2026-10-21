@@ -1,6 +1,49 @@
 import { useState, useEffect } from "react";
 import { subscribeToCounter, subscribeToMedia, defaultState } from "../lib/firebase.js";
 
+const SIZE_CLASSES = {
+  compact: {
+    container: "max-w-xl",
+    title: "text-2xl sm:text-3xl mb-4",
+    cardPadding: "p-4 sm:p-5",
+    label: "text-xs sm:text-sm",
+    pctBadge: "text-xs sm:text-sm px-2 py-0.5",
+    tally: "text-sm sm:text-base",
+    barMinHeight: 24,
+    targetText: "text-[11px] sm:text-xs"
+  },
+  medium: {
+    container: "max-w-3xl",
+    title: "text-3xl sm:text-4xl md:text-5xl mb-6",
+    cardPadding: "p-6 sm:p-8",
+    label: "text-sm sm:text-base",
+    pctBadge: "text-sm sm:text-base px-3 py-1",
+    tally: "text-base sm:text-lg",
+    barMinHeight: 36,
+    targetText: "text-xs sm:text-sm"
+  },
+  large: {
+    container: "max-w-5xl",
+    title: "text-4xl sm:text-6xl md:text-7xl mb-8",
+    cardPadding: "p-8 sm:p-12",
+    label: "text-base sm:text-xl",
+    pctBadge: "text-base sm:text-xl px-4 py-1.5",
+    tally: "text-xl sm:text-2xl",
+    barMinHeight: 48,
+    targetText: "text-sm sm:text-base"
+  },
+  huge: {
+    container: "max-w-7xl",
+    title: "text-5xl sm:text-7xl md:text-8xl mb-10",
+    cardPadding: "p-10 sm:p-16",
+    label: "text-lg sm:text-2xl",
+    pctBadge: "text-lg sm:text-2xl px-5 py-2",
+    tally: "text-2xl sm:text-4xl",
+    barMinHeight: 64,
+    targetText: "text-base sm:text-xl"
+  }
+};
+
 export default function Home() {
   const [counterData, setCounterData] = useState(defaultState);
   const [mediaItems, setMediaItems] = useState([]);
@@ -24,7 +67,7 @@ export default function Home() {
   const selectedMedia = mediaItems.find((m) => m.id === counterData.selectedMediaId) || mediaItems[0];
   const customText = counterData.customText || defaultState.customText;
 
-  // ─── PANE 1: MEDIA DISPLAY (IMAGE / VIDEO) ───
+  // ─── PANE 1: MEDIA DISPLAY (IMAGE / VIDEO - FULL SCREEN / FULL SIZE) ───
   if (activePane === "media") {
     if (!selectedMedia) {
       return (
@@ -42,27 +85,25 @@ export default function Home() {
     }
 
     return (
-      <div className="bg-surface min-h-screen w-full flex items-center justify-center p-2 sm:p-6 select-none overflow-hidden">
-        <div className="max-w-6xl w-full h-[90vh] flex flex-col items-center justify-center">
-          <div className="relative w-full h-full flex items-center justify-center bg-surface-container-lowest p-2 shadow-[8px_8px_0px_#100e09] border border-outline-variant/30">
-            {selectedMedia.type === "video" ? (
-              <video
-                src={selectedMedia.url}
-                controls
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="max-h-full max-w-full object-contain"
-              />
-            ) : (
-              <img
-                src={selectedMedia.url}
-                alt={selectedMedia.name || "Concert Visual"}
-                className="max-h-full max-w-full object-contain"
-              />
-            )}
-          </div>
+      <div className="bg-surface min-h-screen w-screen h-screen flex items-center justify-center p-0 m-0 select-none overflow-hidden fixed inset-0">
+        <div className="w-full h-full flex items-center justify-center bg-black">
+          {selectedMedia.type === "video" ? (
+            <video
+              src={selectedMedia.url}
+              controls
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-contain"
+            />
+          ) : (
+            <img
+              src={selectedMedia.url}
+              alt={selectedMedia.name || "Concert Visual"}
+              className="w-full h-full object-contain"
+            />
+          )}
         </div>
       </div>
     );
@@ -101,7 +142,9 @@ export default function Home() {
   const pct = goal ? Math.min(100, ((raised / goal) * 100)).toFixed(1) : 0;
   const raisedFmt = raised.toLocaleString("en-IN");
   const settings = counterData.settings || {};
-  const barHeight = settings.barHeight || 28;
+  const sizeKey = settings.size || "medium";
+  const sizeConfig = SIZE_CLASSES[sizeKey] || SIZE_CLASSES.medium;
+  const barHeight = Math.max(settings.barHeight || 28, sizeConfig.barMinHeight);
   const hideAmounts = settings.hideAmounts;
   const percentageMode = settings.percentageMode;
   const title = settings.title || "MUSIC FOR A CHANGE";
@@ -112,24 +155,26 @@ export default function Home() {
 
   return (
     <div className="bg-surface font-body-md text-body-md text-on-surface antialiased min-h-screen flex items-center justify-center p-4 sm:p-8">
-      <div className="w-full max-w-3xl">
-        <h1 className="font-headline-lg text-headline-lg uppercase tracking-tight text-on-surface mb-6 text-center sm:text-left">
+      <div className={`w-full ${sizeConfig.container} transition-all duration-300`}>
+        {/* Main Heading Text: slightly bigger in proportion */}
+        <h1 className={`font-headline-lg ${sizeConfig.title} uppercase tracking-tight text-on-surface text-center sm:text-left font-extrabold`}>
           {firstWords ? `${firstWords} ` : ""}<span className="text-secondary">{lastWord || title}</span>
         </h1>
 
         {/* EXACT ORIGINAL SQUARE THERMOMETER BAR */}
-        <div className="bg-surface-container p-6 sm:p-8 shadow-[6px_6px_0px_#100e09] border border-outline-variant/30">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+        <div className={`bg-surface-container ${sizeConfig.cardPadding} shadow-[6px_6px_0px_#100e09] border border-outline-variant/30`}>
+          {/* Reduced top spacing/border margin on top of crowdfund progress */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2.5">
             <div className="flex items-center gap-3">
-              <span className="font-label-md text-sm sm:text-base uppercase tracking-wider text-on-surface font-bold">
+              <span className={`font-label-md ${sizeConfig.label} uppercase tracking-wider text-on-surface font-bold`}>
                 CROWDFUND PROGRESS
               </span>
-              <span className="bg-secondary-container text-on-secondary font-label-md text-sm sm:text-base px-3 py-1 font-extrabold tracking-wide">
+              <span className={`bg-secondary-container text-on-secondary font-label-md ${sizeConfig.pctBadge} font-extrabold tracking-wide`}>
                 {pct}% REACHED
               </span>
             </div>
             {!hideAmounts && (
-              <div className="font-label-lg text-base sm:text-lg text-secondary tracking-wider font-extrabold">
+              <div className={`font-label-lg ${sizeConfig.tally} text-secondary tracking-wider font-extrabold`}>
                 {percentageMode ? `${pct}%` : `₹${raisedFmt} RAISED`}
               </div>
             )}
@@ -138,7 +183,7 @@ export default function Home() {
           {/* Meter Bar: Strict sharp rectangle/square bar */}
           <div
             className="w-full bg-surface-container-lowest p-1.5 shadow-inner"
-            style={{ height: `${Math.max(barHeight, 36)}px` }}
+            style={{ height: `${barHeight}px` }}
           >
             <div
               className="h-full bg-gradient-to-r from-secondary to-tertiary transition-all duration-700 ease-out"
@@ -148,7 +193,7 @@ export default function Home() {
 
           {/* Target Goal & Remaining Display (Controlled by showTarget toggle) */}
           {settings.showTarget !== false && !hideAmounts && (
-            <div className="flex justify-between items-center mt-4 pt-3 border-t border-outline-variant/20 font-label-md text-xs sm:text-sm uppercase tracking-wider text-outline">
+            <div className={`flex justify-between items-center mt-3 pt-2.5 border-t border-outline-variant/20 font-label-md ${sizeConfig.targetText} uppercase tracking-wider text-outline`}>
               <span className="flex items-center gap-2 font-bold text-on-surface-variant">
                 <span className="w-2 h-2 bg-secondary inline-block"></span>
                 TARGET: ₹{goal.toLocaleString("en-IN")}
