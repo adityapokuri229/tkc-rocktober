@@ -4,8 +4,8 @@ import { subscribeToCounter, subscribeToMedia, defaultState } from "../lib/fireb
 const SIZE_CLASSES = {
   compact: {
     container: "max-w-xl",
-    title: "text-2xl sm:text-3xl mb-1",
-    cardPadding: "px-4 pb-4 pt-2.5 sm:px-5 sm:pb-5 sm:pt-3",
+    title: "text-2xl sm:text-3xl mb-4 sm:mb-5",
+    cardPadding: "px-4 pb-4 pt-1 sm:px-5 sm:pb-5 sm:pt-1.5",
     label: "text-xs sm:text-sm",
     pctBadge: "text-xs sm:text-sm px-2 py-0.5",
     tally: "text-sm sm:text-base",
@@ -14,8 +14,8 @@ const SIZE_CLASSES = {
   },
   medium: {
     container: "max-w-3xl",
-    title: "text-3xl sm:text-4xl md:text-5xl mb-2",
-    cardPadding: "px-6 pb-6 pt-3 sm:px-8 sm:pb-8 sm:pt-4",
+    title: "text-3xl sm:text-4xl md:text-5xl mb-6 sm:mb-7",
+    cardPadding: "px-6 pb-6 pt-1.5 sm:px-8 sm:pb-8 sm:pt-2",
     label: "text-sm sm:text-base",
     pctBadge: "text-sm sm:text-base px-3 py-1",
     tally: "text-base sm:text-lg",
@@ -24,8 +24,8 @@ const SIZE_CLASSES = {
   },
   large: {
     container: "max-w-5xl",
-    title: "text-4xl sm:text-6xl md:text-7xl mb-3",
-    cardPadding: "px-8 pb-8 pt-4 sm:px-12 sm:pb-12 sm:pt-6",
+    title: "text-4xl sm:text-6xl md:text-7xl mb-8 sm:mb-9",
+    cardPadding: "px-8 pb-8 pt-2 sm:px-12 sm:pb-12 sm:pt-3",
     label: "text-base sm:text-xl",
     pctBadge: "text-base sm:text-xl px-4 py-1.5",
     tally: "text-xl sm:text-2xl",
@@ -34,8 +34,8 @@ const SIZE_CLASSES = {
   },
   huge: {
     container: "max-w-7xl",
-    title: "text-5xl sm:text-7xl md:text-8xl mb-4",
-    cardPadding: "px-10 pb-10 pt-5 sm:px-16 sm:pb-16 sm:pt-8",
+    title: "text-5xl sm:text-7xl md:text-8xl mb-10 sm:mb-12",
+    cardPadding: "px-10 pb-10 pt-2 sm:px-16 sm:pb-16 sm:pt-3",
     label: "text-lg sm:text-2xl",
     pctBadge: "text-lg sm:text-2xl px-5 py-2",
     tally: "text-2xl sm:text-4xl",
