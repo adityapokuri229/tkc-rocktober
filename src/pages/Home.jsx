@@ -1,19 +1,101 @@
 import { useState, useEffect } from "react";
-import { subscribeToCounter, defaultState } from "../lib/firebase.js";
+import { subscribeToCounter, subscribeToMedia, defaultState } from "../lib/firebase.js";
 
 export default function Home() {
   const [counterData, setCounterData] = useState(defaultState);
+  const [mediaItems, setMediaItems] = useState([]);
 
   useEffect(() => {
-    const unsubscribe = subscribeToCounter((data) => {
+    const unsubCounter = subscribeToCounter((data) => {
       if (data) setCounterData(data);
     });
 
+    const unsubMedia = subscribeToMedia((items) => {
+      setMediaItems(items || []);
+    });
+
     return () => {
-      unsubscribe();
+      unsubCounter();
+      unsubMedia();
     };
   }, []);
 
+  const activePane = counterData.activePane || "counter";
+  const selectedMedia = mediaItems.find((m) => m.id === counterData.selectedMediaId) || mediaItems[0];
+  const customText = counterData.customText || defaultState.customText;
+
+  // ─── PANE 1: MEDIA DISPLAY (IMAGE / VIDEO) ───
+  if (activePane === "media") {
+    if (!selectedMedia) {
+      return (
+        <div className="bg-surface text-on-surface min-h-screen flex items-center justify-center p-8">
+          <div className="bg-surface-container p-8 shadow-[6px_6px_0px_#100e09] border border-outline-variant/30 text-center max-w-md">
+            <span className="text-secondary font-label-md text-sm uppercase font-bold tracking-widest block mb-2">
+              MEDIA PANE ACTIVE
+            </span>
+            <p className="font-body-md text-sm text-outline">
+              No media selected in Admin yet. Upload or select an image/video from the Admin panel.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="bg-surface min-h-screen w-full flex items-center justify-center p-2 sm:p-6 select-none overflow-hidden">
+        <div className="max-w-6xl w-full h-[90vh] flex flex-col items-center justify-center">
+          <div className="relative w-full h-full flex items-center justify-center bg-surface-container-lowest p-2 shadow-[8px_8px_0px_#100e09] border border-outline-variant/30">
+            {selectedMedia.type === "video" ? (
+              <video
+                src={selectedMedia.url}
+                controls
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="max-h-full max-w-full object-contain"
+              />
+            ) : (
+              <img
+                src={selectedMedia.url}
+                alt={selectedMedia.name || "Concert Visual"}
+                className="max-h-full max-w-full object-contain"
+              />
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── PANE 2: CUSTOM TEXT DISPLAY ───
+  if (activePane === "custom") {
+    return (
+      <div className="bg-surface text-on-surface min-h-screen flex items-center justify-center p-6 sm:p-12">
+        <div className="w-full max-w-4xl bg-surface-container p-8 sm:p-14 shadow-[8px_8px_0px_#100e09] border border-outline-variant/30 text-center">
+          {customText.heading && (
+            <h1 className="font-headline-xl text-3xl sm:text-5xl md:text-6xl uppercase tracking-tight text-on-surface mb-6 leading-tight">
+              {customText.heading}
+            </h1>
+          )}
+
+          {customText.subheading && (
+            <p className="font-label-lg text-lg sm:text-2xl text-secondary uppercase font-bold tracking-wider mb-6">
+              {customText.subheading}
+            </p>
+          )}
+
+          {customText.body && (
+            <div className="max-w-2xl mx-auto font-body-lg text-base sm:text-xl text-on-surface-variant leading-relaxed whitespace-pre-line border-t border-outline-variant/30 pt-6">
+              {customText.body}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ─── PANE 3: DONATION COUNTER (DEFAULT) ───
   const raised = Number(counterData.raised || 0);
   const goal = Number(counterData.goal || 150000);
   const pct = goal ? Math.min(100, ((raised / goal) * 100)).toFixed(1) : 0;
@@ -24,7 +106,6 @@ export default function Home() {
   const percentageMode = settings.percentageMode;
   const title = settings.title || "MUSIC FOR A CHANGE";
 
-  // Split title if it has spaces so last word has secondary accent
   const words = title.trim().split(" ");
   const lastWord = words.length > 1 ? words.pop() : "";
   const firstWords = words.join(" ");

@@ -1,6 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { subscribeToCounter, updateCounterInFirebase, defaultState } from "../lib/firebase.js";
+import {
+  subscribeToCounter,
+  subscribeToMedia,
+  updateCounterInFirebase,
+  setActivePane,
+  addMediaItem,
+  deleteMediaItem,
+  updateCustomText,
+  defaultState
+} from "../lib/firebase.js";
 
 const SIZES = [
   { id: "compact", name: "Compact" },
@@ -10,35 +19,161 @@ const SIZES = [
 ];
 
 export default function Admin() {
+  // ─── 4-DIGIT PASSWORD STATE (Session-only: persists until refresh) ───
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [pin, setPin] = useState("");
+  const [pinError, setPinError] = useState("");
+
+  // Counter & Display Data
   const [counter, setCounter] = useState(defaultState);
+  const [mediaItems, setMediaItems] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [mediaUrlInput, setMediaUrlInput] = useState("");
+  const [mediaTypeInput, setMediaTypeInput] = useState("image");
+
+  // Inputs for Counter
   const [addAmount, setAddAmount] = useState("");
   const [subtractAmount, setSubtractAmount] = useState("");
   const [targetGoalInput, setTargetGoalInput] = useState("");
   const [currentAmountInput, setCurrentAmountInput] = useState("");
   const [titleInput, setTitleInput] = useState("");
+
+  // Inputs for Custom Text Pane
+  const [headingInput, setHeadingInput] = useState("");
+  const [subheadingInput, setSubheadingInput] = useState("");
+  const [bodyInput, setBodyInput] = useState("");
+
   const [statusMsg, setStatusMsg] = useState("");
   const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
-    const unsubscribe = subscribeToCounter((data) => {
+    const unsubCounter = subscribeToCounter((data) => {
       if (data) {
         setCounter(data);
         setTargetGoalInput((prev) => (prev === "" ? data.goal : prev));
         setCurrentAmountInput((prev) => (prev === "" ? data.raised : prev));
         setTitleInput((prev) => (prev === "" ? (data.settings?.title || "MUSIC FOR A CHANGE") : prev));
+        if (data.customText) {
+          setHeadingInput((prev) => (prev === "" ? (data.customText.heading || "") : prev));
+          setSubheadingInput((prev) => (prev === "" ? (data.customText.subheading || "") : prev));
+          setBodyInput((prev) => (prev === "" ? (data.customText.body || "") : prev));
+        }
       }
     });
 
+    const unsubMedia = subscribeToMedia((items) => {
+      setMediaItems(items || []);
+    });
+
     return () => {
-      unsubscribe();
+      unsubCounter();
+      unsubMedia();
     };
   }, []);
+
+  const handlePinSubmit = (e) => {
+    e?.preventDefault();
+    if (pin === "1947") {
+      setIsAuthenticated(true);
+      setPinError("");
+    } else {
+      setPinError("Incorrect password. Please try again.");
+      setPin("");
+    }
+  };
 
   const showFeedback = (msg) => {
     setStatusMsg(msg);
     setTimeout(() => setStatusMsg(""), 3000);
   };
 
+  // ─── PANE SWITCHING ───
+  const handleSelectPane = async (pane, mediaId = null) => {
+    setLoading(true);
+    await setActivePane(pane, mediaId);
+    setLoading(false);
+    showFeedback(`Switched screen to ${pane.toUpperCase()} pane!`);
+  };
+
+  // ─── MEDIA UPLOAD (DRAG & DROP / FILE INPUT) ───
+  const processFile = (file) => {
+    if (!file) return;
+    const isVideo = file.type.startsWith("video/");
+    const isImage = file.type.startsWith("image/");
+    if (!isImage && !isVideo) {
+      showFeedback("Please upload an image or video file.");
+      return;
+    }
+
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const dataUrl = e.target.result;
+        const newItem = await addMediaItem({
+          name: file.name,
+          type: isVideo ? "video" : "image",
+          dataUrl
+        });
+        setUploading(false);
+        showFeedback(`Uploaded "${file.name}" to media library!`);
+        // If currently in media pane, immediately show it
+        if (counter.activePane === "media") {
+          await setActivePane("media", newItem.id);
+        }
+      } catch (err) {
+        setUploading(false);
+        showFeedback("Failed to process file.");
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    if (e.dataTransfer?.files?.[0]) {
+      processFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleAddMediaUrl = async (e) => {
+    e?.preventDefault();
+    if (!mediaUrlInput.trim()) return;
+    setLoading(true);
+    const newItem = await addMediaItem({
+      name: mediaUrlInput.split("/").pop() || "Web Media",
+      type: mediaTypeInput,
+      url: mediaUrlInput.trim()
+    });
+    setMediaUrlInput("");
+    setLoading(false);
+    showFeedback("Added media link to library!");
+    if (counter.activePane === "media") {
+      await setActivePane("media", newItem.id);
+    }
+  };
+
+  const handleDeleteMedia = async (id, e) => {
+    e?.stopPropagation();
+    await deleteMediaItem(id);
+    showFeedback("Removed item from library.");
+  };
+
+  // ─── CUSTOM TEXT SUBMIT ───
+  const handleSaveCustomText = async (e) => {
+    e?.preventDefault();
+    setLoading(true);
+    await updateCustomText({
+      heading: headingInput,
+      subheading: subheadingInput,
+      body: bodyInput
+    });
+    setLoading(false);
+    showFeedback("Custom text updated live!");
+  };
+
+  // ─── COUNTER CONTROLS ───
   const handleUpdateSettings = async (patch) => {
     setLoading(true);
     const newSettings = {
@@ -117,6 +252,61 @@ export default function Admin() {
     await handleUpdateSettings({ title: titleInput });
   };
 
+  // ─── 1. PASSWORD GATE (IF NOT AUTHENTICATED) ───
+  if (!isAuthenticated) {
+    return (
+      <div className="bg-surface font-body-md text-on-surface min-h-screen flex items-center justify-center p-4">
+        <div className="w-full max-w-sm bg-surface-container p-8 shadow-[6px_6px_0px_#100e09] border border-outline-variant/30 text-center">
+          <div className="w-12 h-12 bg-surface-container-highest border border-secondary text-secondary font-headline-lg flex items-center justify-center mx-auto mb-4 font-bold">
+            🔒
+          </div>
+          <h2 className="font-headline-md text-xl uppercase tracking-tight text-on-surface mb-1 font-bold">
+            ADMIN ACCESS
+          </h2>
+          <p className="font-label-sm text-xs text-outline uppercase mb-6">
+            Enter 4-digit PIN to unlock control panel
+          </p>
+
+          <form onSubmit={handlePinSubmit} className="flex flex-col gap-4">
+            <input
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              placeholder="••••"
+              value={pin}
+              autoFocus
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+              className="bg-surface-container-lowest border border-outline-variant/40 px-4 py-3 text-center text-2xl tracking-[0.5em] font-headline-lg text-secondary outline-none focus:border-secondary"
+            />
+            {pinError && (
+              <span className="font-label-sm text-xs text-[#ffb4ab] font-bold">
+                {pinError}
+              </span>
+            )}
+            <button
+              type="submit"
+              disabled={pin.length < 4}
+              className="bg-secondary text-on-secondary font-label-md uppercase font-bold py-3 hover:bg-secondary-fixed transition-colors disabled:opacity-40"
+            >
+              Unlock Console
+            </button>
+          </form>
+
+          <div className="mt-6 pt-4 border-t border-outline-variant/20">
+            <Link
+              to="/"
+              className="font-label-sm text-xs uppercase text-outline hover:text-secondary hover:underline"
+            >
+              ← Back to Live Display Screen
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── 2. AUTHENTICATED ADMIN CONSOLE ───
+  const activePane = counter.activePane || "counter";
   const raised = Number(counter.raised || 0);
   const goal = Number(counter.goal || 150000);
   const pct = goal ? Math.min(100, Math.max(0, (raised / goal) * 100)) : 0;
@@ -124,20 +314,30 @@ export default function Admin() {
 
   return (
     <div className="bg-surface font-body-md text-body-md text-on-surface antialiased min-h-screen flex flex-col justify-between selection:bg-secondary-container selection:text-on-secondary-container p-4 sm:p-8">
-      <div className="w-full max-w-3xl mx-auto">
-        {/* Navigation & Live Sync Status */}
-        <div className="flex items-center justify-between mb-6">
+      <div className="w-full max-w-4xl mx-auto">
+        {/* Navigation & Status */}
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-outline-variant/20">
           <Link
             to="/"
+            target="_blank"
             className="font-label-md text-xs uppercase tracking-wider text-secondary hover:underline flex items-center gap-1 font-bold"
           >
-            ← View Display Page
+            ↗ Open Display Screen (TV)
           </Link>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
-            <span className="font-label-sm text-xs uppercase tracking-widest text-secondary font-bold">
-              LIVE SYNC
-            </span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+              <span className="font-label-sm text-xs uppercase tracking-widest text-secondary font-bold">
+                LIVE SYNC
+              </span>
+            </div>
+            <button
+              onClick={() => setIsAuthenticated(false)}
+              className="bg-surface-container-highest text-outline hover:text-on-surface px-2.5 py-1 text-xs font-label-sm uppercase font-bold border border-outline-variant/30"
+              title="Lock Console"
+            >
+              Lock 🔒
+            </button>
           </div>
         </div>
 
@@ -149,118 +349,404 @@ export default function Admin() {
           </div>
         )}
 
-        {/* ─── 1. SQUARE THERMOMETER TALLY CARD (EXACT DISPLAY THEME) ─── */}
-        <div className="bg-surface-container p-space-md shadow-[4px_4px_0px_#100e09] border border-outline-variant/30 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-space-xs mb-space-xs">
-            <div className="flex items-center gap-space-xs">
-              <span className="font-label-md text-label-md uppercase text-on-surface">CROWDFUND PROGRESS</span>
-              <span className="bg-secondary-container text-on-secondary font-label-sm text-label-sm px-space-xs py-0.5 font-bold">
-                {pct.toFixed(1)}% REACHED
+        {/* ═══════════════════════════════════════════════════════════════
+            PANE SELECTOR TABS (What Displays on TV Screen)
+           ═══════════════════════════════════════════════════════════════ */}
+        <div className="bg-surface-container p-4 shadow-[4px_4px_0px_#100e09] border border-outline-variant/30 mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+            <div className="font-label-md text-xs uppercase text-secondary font-bold tracking-wider">
+              ✦ ACTIVE TV SCREEN PANE
+            </div>
+            <span className="font-label-sm text-xs text-outline uppercase">
+              Click any pane to switch the TV screen immediately
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* 1. Donation Counter */}
+            <button
+              type="button"
+              onClick={() => handleSelectPane("counter")}
+              className={`p-4 text-left border transition-all ${
+                activePane === "counter"
+                  ? "bg-secondary text-on-secondary border-secondary shadow-[3px_3px_0px_#100e09]"
+                  : "bg-surface-container-lowest text-on-surface border-outline-variant/40 hover:border-secondary"
+              }`}
+            >
+              <div className="font-label-md text-xs uppercase font-extrabold flex items-center justify-between mb-1">
+                <span>1. DONATION COUNTER</span>
+                {activePane === "counter" && <span>● LIVE ON TV</span>}
+              </div>
+              <p className={`font-body-sm text-xs ${activePane === "counter" ? "text-on-secondary/80" : "text-outline"}`}>
+                Displays live collection tally &amp; square progress bar.
+              </p>
+            </button>
+
+            {/* 2. Media Pane (Image/Video) */}
+            <button
+              type="button"
+              onClick={() => handleSelectPane("media", counter.selectedMediaId || mediaItems[0]?.id)}
+              className={`p-4 text-left border transition-all ${
+                activePane === "media"
+                  ? "bg-secondary text-on-secondary border-secondary shadow-[3px_3px_0px_#100e09]"
+                  : "bg-surface-container-lowest text-on-surface border-outline-variant/40 hover:border-secondary"
+              }`}
+            >
+              <div className="font-label-md text-xs uppercase font-extrabold flex items-center justify-between mb-1">
+                <span>2. MEDIA PANE (IMG / VIDEO)</span>
+                {activePane === "media" && <span>● LIVE ON TV</span>}
+              </div>
+              <p className={`font-body-sm text-xs ${activePane === "media" ? "text-on-secondary/80" : "text-outline"}`}>
+                Displays uploaded photos, posters, QR codes, or videos.
+              </p>
+            </button>
+
+            {/* 3. Custom Text Pane */}
+            <button
+              type="button"
+              onClick={() => handleSelectPane("custom")}
+              className={`p-4 text-left border transition-all ${
+                activePane === "custom"
+                  ? "bg-secondary text-on-secondary border-secondary shadow-[3px_3px_0px_#100e09]"
+                  : "bg-surface-container-lowest text-on-surface border-outline-variant/40 hover:border-secondary"
+              }`}
+            >
+              <div className="font-label-md text-xs uppercase font-extrabold flex items-center justify-between mb-1">
+                <span>3. CUSTOM TEXT PANE</span>
+                {activePane === "custom" && <span>● LIVE ON TV</span>}
+              </div>
+              <p className={`font-body-sm text-xs ${activePane === "custom" ? "text-on-secondary/80" : "text-outline"}`}>
+                Displays announcements, band line-ups, or custom slides.
+              </p>
+            </button>
+          </div>
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════════
+            SECTION A: MEDIA PANE CONTROLS & UPLOAD (DRAG AND DROP)
+           ═══════════════════════════════════════════════════════════════ */}
+        <div className="bg-surface-container p-6 shadow-[4px_4px_0px_#100e09] border border-outline-variant/30 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-headline-md text-lg uppercase tracking-tight text-on-surface font-bold">
+              Media Pane: Images &amp; Videos
+            </h3>
+            {activePane === "media" && (
+              <span className="bg-secondary text-on-secondary font-label-sm text-xs px-2 py-0.5 font-bold uppercase">
+                Active on TV
               </span>
-            </div>
-            <div className="font-label-md text-label-md text-secondary tracking-wider font-bold">
-              ₹{raised.toLocaleString("en-IN")} RAISED
-            </div>
+            )}
           </div>
 
-          {/* Square Meter Bar */}
-          <div className="w-full h-7 bg-surface-container-lowest p-1 shadow-inner">
-            <div
-              className="h-full bg-gradient-to-r from-secondary to-tertiary transition-all duration-500 ease-out"
-              style={{ width: `${pct}%` }}
-            ></div>
+          {/* Drag & Drop Upload Zone */}
+          <div
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            className="border-2 border-dashed border-outline-variant/60 hover:border-secondary p-8 text-center cursor-pointer bg-surface-container-lowest transition-colors mb-4"
+          >
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*,video/*"
+              onChange={(e) => {
+                if (e.target.files?.[0]) processFile(e.target.files[0]);
+              }}
+              className="hidden"
+            />
+            <div className="text-3xl mb-2 text-secondary">📁</div>
+            <div className="font-label-md text-sm uppercase text-on-surface font-bold mb-1">
+              {uploading ? "Processing file..." : "Drag & Drop Image or Video Here"}
+            </div>
+            <p className="font-body-sm text-xs text-outline">
+              or click to browse from your device (PNG, JPG, MP4, WebM)
+            </p>
           </div>
 
-          <div className="flex justify-between items-center mt-2 font-label-sm text-xs text-outline uppercase">
-            <span>Target Goal: ₹{goal.toLocaleString("en-IN")} (1.5 Lakh)</span>
-            <span>Remaining: ₹{Math.max(0, goal - raised).toLocaleString("en-IN")}</span>
+          {/* URL Add fallback */}
+          <form onSubmit={handleAddMediaUrl} className="flex flex-col sm:flex-row gap-2 mb-6">
+            <input
+              type="url"
+              placeholder="Or paste public Image/Video URL (https://...)"
+              value={mediaUrlInput}
+              onChange={(e) => setMediaUrlInput(e.target.value)}
+              className="flex-1 bg-surface-container-lowest border border-outline-variant/40 px-3 py-2 text-on-surface font-label-md text-xs outline-none focus:border-secondary"
+            />
+            <select
+              value={mediaTypeInput}
+              onChange={(e) => setMediaTypeInput(e.target.value)}
+              className="bg-surface-container-lowest border border-outline-variant/40 px-3 py-2 text-on-surface font-label-md text-xs outline-none"
+            >
+              <option value="image">Image</option>
+              <option value="video">Video</option>
+            </select>
+            <button
+              type="submit"
+              disabled={!mediaUrlInput.trim()}
+              className="bg-surface-container-highest hover:bg-secondary hover:text-on-secondary text-secondary font-label-md text-xs uppercase font-bold px-4 py-2 border border-secondary/30 disabled:opacity-40"
+            >
+              + Add URL
+            </button>
+          </form>
+
+          {/* Media Items Gallery */}
+          <div className="border-t border-outline-variant/20 pt-4">
+            <div className="font-label-sm text-xs text-outline uppercase font-bold mb-3">
+              Media Library ({mediaItems.length} items) — Click item to display on TV:
+            </div>
+
+            {mediaItems.length === 0 ? (
+              <div className="p-4 bg-surface-container-lowest text-center text-xs text-outline font-label-sm uppercase">
+                No images or videos added yet. Drag and drop any media above.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {mediaItems.map((item) => {
+                  const isSelected = activePane === "media" && counter.selectedMediaId === item.id;
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => handleSelectPane("media", item.id)}
+                      className={`relative group cursor-pointer border p-2 bg-surface-container-lowest transition-all ${
+                        isSelected
+                          ? "border-secondary ring-2 ring-secondary shadow-[3px_3px_0px_#100e09]"
+                          : "border-outline-variant/40 hover:border-secondary"
+                      }`}
+                    >
+                      <div className="w-full h-24 bg-surface flex items-center justify-center overflow-hidden mb-1.5">
+                        {item.type === "video" ? (
+                          <div className="text-center text-xs font-label-sm text-secondary">
+                            ▶ VIDEO
+                          </div>
+                        ) : (
+                          <img
+                            src={item.url}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] font-label-sm">
+                        <span className="truncate max-w-[100px] text-on-surface font-bold">
+                          {item.name}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteMedia(item.id, e)}
+                          className="text-[#ffb4ab] hover:underline"
+                          title="Delete"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      {isSelected && (
+                        <div className="absolute top-1 left-1 bg-secondary text-on-secondary font-label-sm text-[9px] px-1 font-bold">
+                          ON TV
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* ─── 2. ADD & SUBTRACT CONTROLS ─── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-          {/* Add */}
-          <div className="bg-surface-container p-4 shadow-[3px_3px_0px_#100e09] border border-outline-variant/30">
-            <div className="font-label-md text-xs uppercase text-secondary font-bold mb-2">
-              + Add Amount (₹)
-            </div>
-            <form onSubmit={handleAdd} className="flex gap-2 mb-3">
-              <input
-                type="number"
-                min="1"
-                placeholder="Amount to add..."
-                value={addAmount}
-                onChange={(e) => setAddAmount(e.target.value)}
-                className="flex-1 bg-surface-container-lowest border border-outline-variant/40 px-3 py-2 text-on-surface font-label-md text-sm outline-none focus:border-secondary"
-              />
-              <button
-                type="submit"
-                disabled={loading || !addAmount}
-                className="bg-secondary text-on-secondary font-label-md uppercase font-bold px-4 py-2 hover:bg-secondary-fixed transition-colors disabled:opacity-50"
-              >
-                + Add
-              </button>
-            </form>
-            {/* 1-tap quick buttons */}
-            <div className="flex flex-wrap gap-1.5">
-              {[349, 449, 549, 1000, 2500, 5000].map((amt) => (
-                <button
-                  key={amt}
-                  type="button"
-                  onClick={() => updateCounterInFirebase({ action: "add", delta: amt }).then((u) => { setCounter(u); showFeedback(`+₹${amt} added!`); })}
-                  className="bg-surface-container-highest hover:bg-secondary hover:text-on-secondary text-on-surface font-label-sm text-xs px-2.5 py-1 transition-colors font-bold border border-outline-variant/20"
-                >
-                  +₹{amt}
-                </button>
-              ))}
-            </div>
+        {/* ═══════════════════════════════════════════════════════════════
+            SECTION B: CUSTOM TEXT PANE CONTROLS
+           ═══════════════════════════════════════════════════════════════ */}
+        <div className="bg-surface-container p-6 shadow-[4px_4px_0px_#100e09] border border-outline-variant/30 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-headline-md text-lg uppercase tracking-tight text-on-surface font-bold">
+              Custom Text Pane
+            </h3>
+            {activePane === "custom" && (
+              <span className="bg-secondary text-on-secondary font-label-sm text-xs px-2 py-0.5 font-bold uppercase">
+                Active on TV
+              </span>
+            )}
           </div>
 
-          {/* Subtract */}
-          <div className="bg-surface-container p-4 shadow-[3px_3px_0px_#100e09] border border-outline-variant/30">
-            <div className="font-label-md text-xs uppercase text-tertiary font-bold mb-2">
-              - Subtract / Deduct (₹)
-            </div>
-            <form onSubmit={handleSubtract} className="flex gap-2 mb-3">
+          <form onSubmit={handleSaveCustomText} className="flex flex-col gap-3">
+            <div>
+              <label className="block font-label-sm text-xs text-outline uppercase font-bold mb-1">
+                Main Heading
+              </label>
               <input
-                type="number"
-                min="1"
-                placeholder="Amount to deduct..."
-                value={subtractAmount}
-                onChange={(e) => setSubtractAmount(e.target.value)}
-                className="flex-1 bg-surface-container-lowest border border-outline-variant/40 px-3 py-2 text-on-surface font-label-md text-sm outline-none focus:border-tertiary"
+                type="text"
+                placeholder="e.g. WELCOME TO THE CONCERT"
+                value={headingInput}
+                onChange={(e) => setHeadingInput(e.target.value)}
+                className="w-full bg-surface-container-lowest border border-outline-variant/40 px-3 py-2 text-on-surface font-label-md text-sm outline-none focus:border-secondary"
               />
+            </div>
+
+            <div>
+              <label className="block font-label-sm text-xs text-outline uppercase font-bold mb-1">
+                Subheading / Tagline
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Next Band: The Groovy Syndicate • 8:30 PM"
+                value={subheadingInput}
+                onChange={(e) => setSubheadingInput(e.target.value)}
+                className="w-full bg-surface-container-lowest border border-outline-variant/40 px-3 py-2 text-on-surface font-label-md text-sm outline-none focus:border-secondary"
+              />
+            </div>
+
+            <div>
+              <label className="block font-label-sm text-xs text-outline uppercase font-bold mb-1">
+                Body / Notice / QR Description
+              </label>
+              <textarea
+                rows={3}
+                placeholder="e.g. Scan the QR code on your tables to donate. All proceeds go to underprivileged children's education."
+                value={bodyInput}
+                onChange={(e) => setBodyInput(e.target.value)}
+                className="w-full bg-surface-container-lowest border border-outline-variant/40 px-3 py-2 text-on-surface font-body-md text-sm outline-none focus:border-secondary"
+              />
+            </div>
+
+            <div className="flex gap-2 justify-end mt-2">
+              <button
+                type="button"
+                onClick={() => handleSelectPane("custom")}
+                className="bg-surface-container-highest hover:bg-secondary hover:text-on-secondary text-secondary font-label-md uppercase text-xs px-4 py-2 font-bold border border-secondary/30"
+              >
+                Switch TV to Custom Text
+              </button>
               <button
                 type="submit"
-                disabled={loading || !subtractAmount}
-                className="bg-tertiary text-on-tertiary font-label-md uppercase font-bold px-4 py-2 hover:bg-tertiary-fixed transition-colors disabled:opacity-50"
+                disabled={loading}
+                className="bg-secondary text-on-secondary font-label-md uppercase text-xs px-5 py-2 font-bold hover:bg-secondary-fixed transition-colors"
               >
-                - Deduct
+                Save &amp; Update Live
               </button>
-            </form>
-            <div className="flex flex-wrap gap-1.5">
-              {[349, 549, 1000, 5000].map((amt) => (
-                <button
-                  key={amt}
-                  type="button"
-                  onClick={() => updateCounterInFirebase({ action: "subtract", delta: amt }).then((u) => { setCounter(u); showFeedback(`-₹${amt} deducted!`); })}
-                  disabled={raised < amt}
-                  className="bg-surface-container-highest hover:bg-tertiary hover:text-on-tertiary text-tertiary font-label-sm text-xs px-2.5 py-1 transition-colors font-bold border border-tertiary/20 disabled:opacity-30"
-                >
-                  -₹{amt}
-                </button>
-              ))}
             </div>
-          </div>
+          </form>
         </div>
 
-        {/* ─── 3. OVERRIDE TOTAL & FINAL TARGET GOAL ─── */}
-        <div className="bg-surface-container p-4 shadow-[3px_3px_0px_#100e09] border border-outline-variant/30 mb-6">
-          <div className="font-label-md text-xs uppercase text-primary font-bold mb-3">
-            Tally &amp; Target Goal Direct Overrides
+        {/* ═══════════════════════════════════════════════════════════════
+            SECTION C: DONATION COUNTER CONTROLS
+           ═══════════════════════════════════════════════════════════════ */}
+        <div className="bg-surface-container p-6 shadow-[4px_4px_0px_#100e09] border border-outline-variant/30 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-headline-md text-lg uppercase tracking-tight text-on-surface font-bold">
+              Donation Counter Pane
+            </h3>
+            {activePane === "counter" && (
+              <span className="bg-secondary text-on-secondary font-label-sm text-xs px-2 py-0.5 font-bold uppercase">
+                Active on TV
+              </span>
+            )}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <form onSubmit={handleSetCurrent} className="flex flex-col gap-1.5">
+
+          {/* Square Thermometer Tally Card */}
+          <div className="bg-surface-container-lowest p-space-md shadow-[3px_3px_0px_#100e09] border border-outline-variant/30 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-space-xs mb-space-xs">
+              <div className="flex items-center gap-2">
+                <span className="font-label-md text-xs sm:text-sm uppercase text-on-surface">CROWDFUND PROGRESS</span>
+                <span className="bg-secondary-container text-on-secondary font-label-sm text-xs px-2 py-0.5 font-bold">
+                  {pct.toFixed(1)}% REACHED
+                </span>
+              </div>
+              <div className="font-label-md text-sm text-secondary tracking-wider font-bold">
+                ₹{raised.toLocaleString("en-IN")} RAISED
+              </div>
+            </div>
+
+            {/* Meter Bar */}
+            <div className="w-full h-6 bg-surface-container p-1 shadow-inner">
+              <div
+                className="h-full bg-gradient-to-r from-secondary to-tertiary transition-all duration-500 ease-out"
+                style={{ width: `${pct}%` }}
+              ></div>
+            </div>
+
+            <div className="flex justify-between items-center mt-2 font-label-sm text-xs text-outline uppercase">
+              <span>Target: ₹{goal.toLocaleString("en-IN")}</span>
+              <span>Remaining: ₹{Math.max(0, goal - raised).toLocaleString("en-IN")}</span>
+            </div>
+          </div>
+
+          {/* Add / Subtract */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+            {/* Add */}
+            <div className="bg-surface-container-lowest p-4 border border-outline-variant/30">
+              <div className="font-label-md text-xs uppercase text-secondary font-bold mb-2">
+                + Add Amount (₹)
+              </div>
+              <form onSubmit={handleAdd} className="flex gap-2 mb-3">
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="Amount to add..."
+                  value={addAmount}
+                  onChange={(e) => setAddAmount(e.target.value)}
+                  className="flex-1 bg-surface border border-outline-variant/40 px-3 py-2 text-on-surface font-label-md text-sm outline-none focus:border-secondary"
+                />
+                <button
+                  type="submit"
+                  disabled={loading || !addAmount}
+                  className="bg-secondary text-on-secondary font-label-md uppercase font-bold px-4 py-2 hover:bg-secondary-fixed transition-colors disabled:opacity-50"
+                >
+                  + Add
+                </button>
+              </form>
+              <div className="flex flex-wrap gap-1.5">
+                {[349, 449, 549, 1000, 2500, 5000].map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => updateCounterInFirebase({ action: "add", delta: amt }).then((u) => { setCounter(u); showFeedback(`+₹${amt} added!`); })}
+                    className="bg-surface-container-highest hover:bg-secondary hover:text-on-secondary text-on-surface font-label-sm text-xs px-2.5 py-1 transition-colors font-bold border border-outline-variant/20"
+                  >
+                    +₹{amt}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Subtract */}
+            <div className="bg-surface-container-lowest p-4 border border-outline-variant/30">
+              <div className="font-label-md text-xs uppercase text-tertiary font-bold mb-2">
+                - Subtract / Deduct (₹)
+              </div>
+              <form onSubmit={handleSubtract} className="flex gap-2 mb-3">
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="Amount to deduct..."
+                  value={subtractAmount}
+                  onChange={(e) => setSubtractAmount(e.target.value)}
+                  className="flex-1 bg-surface border border-outline-variant/40 px-3 py-2 text-on-surface font-label-md text-sm outline-none focus:border-tertiary"
+                />
+                <button
+                  type="submit"
+                  disabled={loading || !subtractAmount}
+                  className="bg-tertiary text-on-tertiary font-label-md uppercase font-bold px-4 py-2 hover:bg-tertiary-fixed transition-colors disabled:opacity-50"
+                >
+                  - Deduct
+                </button>
+              </form>
+              <div className="flex flex-wrap gap-1.5">
+                {[349, 549, 1000, 5000].map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    onClick={() => updateCounterInFirebase({ action: "subtract", delta: amt }).then((u) => { setCounter(u); showFeedback(`-₹${amt} deducted!`); })}
+                    disabled={raised < amt}
+                    className="bg-surface-container-highest hover:bg-tertiary hover:text-on-tertiary text-tertiary font-label-sm text-xs px-2.5 py-1 transition-colors font-bold border border-tertiary/20 disabled:opacity-30"
+                  >
+                    -₹{amt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Overrides */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+            <form onSubmit={handleSetCurrent} className="flex flex-col gap-1.5 bg-surface-container-lowest p-4 border border-outline-variant/30">
               <label className="font-label-sm text-xs text-outline uppercase font-bold">
                 Set Current Amount (₹)
               </label>
@@ -270,7 +756,7 @@ export default function Admin() {
                   min="0"
                   value={currentAmountInput}
                   onChange={(e) => setCurrentAmountInput(e.target.value)}
-                  className="flex-1 bg-surface-container-lowest border border-outline-variant/40 px-3 py-2 text-on-surface font-label-md text-sm outline-none focus:border-primary"
+                  className="flex-1 bg-surface border border-outline-variant/40 px-3 py-2 text-on-surface font-label-md text-sm outline-none focus:border-primary"
                 />
                 <button
                   type="submit"
@@ -281,7 +767,7 @@ export default function Admin() {
               </div>
             </form>
 
-            <form onSubmit={handleSetGoal} className="flex flex-col gap-1.5">
+            <form onSubmit={handleSetGoal} className="flex flex-col gap-1.5 bg-surface-container-lowest p-4 border border-outline-variant/30">
               <label className="font-label-sm text-xs text-outline uppercase font-bold">
                 Final Target Goal (₹)
               </label>
@@ -291,7 +777,7 @@ export default function Admin() {
                   min="1"
                   value={targetGoalInput}
                   onChange={(e) => setTargetGoalInput(e.target.value)}
-                  className="flex-1 bg-surface-container-lowest border border-outline-variant/40 px-3 py-2 text-on-surface font-label-md text-sm outline-none focus:border-primary"
+                  className="flex-1 bg-surface border border-outline-variant/40 px-3 py-2 text-on-surface font-label-md text-sm outline-none focus:border-primary"
                 />
                 <button
                   type="submit"
@@ -302,126 +788,76 @@ export default function Admin() {
               </div>
             </form>
           </div>
-        </div>
 
-        {/* ─── 4. DISPLAY PARAMETERS: TITLE, SIZE, BAR THICKNESS, MODES ─── */}
-        <div className="bg-surface-container p-4 shadow-[3px_3px_0px_#100e09] border border-outline-variant/30 mb-6">
-          <div className="font-label-md text-xs uppercase text-secondary font-bold mb-4">
-            Display Parameters &amp; Controls
-          </div>
-
-          {/* Title Editor */}
-          <form onSubmit={handleSaveTitle} className="mb-4">
-            <label className="block font-label-sm text-xs text-outline uppercase font-bold mb-1">
-              Heading Title
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={titleInput}
-                onChange={(e) => setTitleInput(e.target.value)}
-                placeholder="e.g. MUSIC FOR A CHANGE"
-                className="flex-1 bg-surface-container-lowest border border-outline-variant/40 px-3 py-2 text-on-surface font-label-md text-sm outline-none focus:border-secondary"
-              />
-              <button
-                type="submit"
-                className="bg-surface-container-highest hover:bg-secondary hover:text-on-secondary text-secondary font-label-md uppercase text-xs px-4 py-2 font-bold border border-secondary/30"
-              >
-                Save
-              </button>
-            </div>
-          </form>
-
-          {/* Size Option Buttons */}
-          <div className="mb-4">
-            <label className="block font-label-sm text-xs text-outline uppercase font-bold mb-1.5">
-              Screen Size Mode
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {SIZES.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => handleUpdateSettings({ size: s.id })}
-                  className={`py-2 px-3 font-label-md text-xs uppercase font-bold border transition-colors ${
-                    (settings.size || "medium") === s.id
-                      ? "bg-secondary text-on-secondary border-secondary"
-                      : "bg-surface-container-lowest text-on-surface border-outline-variant/40 hover:border-secondary"
-                  }`}
-                >
-                  {s.name}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Bar Height Slider */}
-          <div className="mb-4">
-            <div className="flex justify-between items-center mb-1">
-              <label className="font-label-sm text-xs text-outline uppercase font-bold">
-                Square Bar Height (Thickness)
+          {/* Heading & Toggles */}
+          <div className="border-t border-outline-variant/20 pt-4">
+            <form onSubmit={handleSaveTitle} className="mb-4">
+              <label className="block font-label-sm text-xs text-outline uppercase font-bold mb-1">
+                Heading Title
               </label>
-              <span className="font-label-sm text-xs text-secondary font-bold">
-                {settings.barHeight || 28}px
-              </span>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={titleInput}
+                  onChange={(e) => setTitleInput(e.target.value)}
+                  placeholder="e.g. MUSIC FOR A CHANGE"
+                  className="flex-1 bg-surface-container-lowest border border-outline-variant/40 px-3 py-2 text-on-surface font-label-md text-sm outline-none focus:border-secondary"
+                />
+                <button
+                  type="submit"
+                  className="bg-surface-container-highest hover:bg-secondary hover:text-on-secondary text-secondary font-label-md uppercase text-xs px-4 py-2 font-bold border border-secondary/30"
+                >
+                  Save
+                </button>
+              </div>
+            </form>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <label className="flex items-center gap-3 bg-surface-container-lowest p-3 border border-outline-variant/30 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={settings.showTarget !== false}
+                  onChange={(e) => handleUpdateSettings({ showTarget: e.target.checked })}
+                  className="w-4 h-4 accent-[#5dd9d0]"
+                />
+                <div>
+                  <div className="font-label-md text-xs uppercase font-bold text-on-surface">Show Target</div>
+                  <div className="font-body-sm text-[11px] text-on-surface-variant">Display target &amp; remaining goal</div>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-3 bg-surface-container-lowest p-3 border border-outline-variant/30 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!settings.percentageMode}
+                  onChange={(e) => handleUpdateSettings({ percentageMode: e.target.checked })}
+                  className="w-4 h-4 accent-[#5dd9d0]"
+                />
+                <div>
+                  <div className="font-label-md text-xs uppercase font-bold text-on-surface">Percentage Mode</div>
+                  <div className="font-body-sm text-[11px] text-on-surface-variant">Display % instead of currency</div>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-3 bg-surface-container-lowest p-3 border border-outline-variant/30 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!settings.hideAmounts}
+                  onChange={(e) => handleUpdateSettings({ hideAmounts: e.target.checked })}
+                  className="w-4 h-4 accent-[#5dd9d0]"
+                />
+                <div>
+                  <div className="font-label-md text-xs uppercase font-bold text-on-surface">Hide Amounts</div>
+                  <div className="font-body-sm text-[11px] text-on-surface-variant">Hide figures from screen</div>
+                </div>
+              </label>
             </div>
-            <input
-              type="range"
-              min="14"
-              max="64"
-              step="2"
-              value={settings.barHeight || 28}
-              onChange={(e) => handleUpdateSettings({ barHeight: Number(e.target.value) })}
-              className="w-full accent-[#5dd9d0] cursor-pointer"
-            />
-          </div>
-
-          {/* Toggles */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-outline-variant/20">
-            <label className="flex items-center gap-3 bg-surface-container-lowest p-3 border border-outline-variant/30 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={settings.showTarget !== false}
-                onChange={(e) => handleUpdateSettings({ showTarget: e.target.checked })}
-                className="w-4 h-4 accent-[#5dd9d0]"
-              />
-              <div>
-                <div className="font-label-md text-xs uppercase font-bold text-on-surface">Show Target</div>
-                <div className="font-body-sm text-[11px] text-on-surface-variant">Display target amount &amp; remaining goal</div>
-              </div>
-            </label>
-
-            <label className="flex items-center gap-3 bg-surface-container-lowest p-3 border border-outline-variant/30 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={!!settings.percentageMode}
-                onChange={(e) => handleUpdateSettings({ percentageMode: e.target.checked })}
-                className="w-4 h-4 accent-[#5dd9d0]"
-              />
-              <div>
-                <div className="font-label-md text-xs uppercase font-bold text-on-surface">Percentage Mode</div>
-                <div className="font-body-sm text-[11px] text-on-surface-variant">Display % progress instead of raw currency</div>
-              </div>
-            </label>
-
-            <label className="flex items-center gap-3 bg-surface-container-lowest p-3 border border-outline-variant/30 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={!!settings.hideAmounts}
-                onChange={(e) => handleUpdateSettings({ hideAmounts: e.target.checked })}
-                className="w-4 h-4 accent-[#5dd9d0]"
-              />
-              <div>
-                <div className="font-label-md text-xs uppercase font-bold text-on-surface">Hide Amounts</div>
-                <div className="font-body-sm text-[11px] text-on-surface-variant">Hide figures completely from audience view</div>
-              </div>
-            </label>
           </div>
         </div>
       </div>
 
       <footer className="w-full text-center py-4 text-xs font-label-sm uppercase text-outline">
-        Controls synced live to public display screen
+        Controls synced live to public display screen via Firebase RTDB
       </footer>
     </div>
   );

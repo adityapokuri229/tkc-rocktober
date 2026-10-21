@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getDatabase, ref, onValue, set, update, get } from "firebase/database";
+import { getDatabase, ref, onValue, set, update, get, push, remove } from "firebase/database";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDWEb5nvzeziaTjMP6rQU8GTyZGDeSMxqw",
@@ -18,6 +18,14 @@ export const rtdb = getDatabase(app);
 export const defaultState = {
   goal: 150000,
   raised: 77000,
+  activePane: "counter", // 'counter' | 'media' | 'custom'
+  selectedMediaId: null,
+  customText: {
+    heading: "WELCOME TO THE CONCERT",
+    subheading: "Support education for the underprivileged",
+    body: "Scan the QR code on your table to donate.",
+    style: "highlight" // 'highlight' | 'minimal' | 'banner'
+  },
   settings: {
     title: "MUSIC FOR A CHANGE",
     size: "medium",
@@ -33,8 +41,9 @@ export const defaultState = {
 };
 
 const COUNTER_REF = "counter";
+const MEDIA_REF = "mediaItems";
 
-// Real-time listener using Firebase WebSockets (sub-50ms latency)
+// Real-time listener for screen state
 export function subscribeToCounter(callback) {
   const counterRef = ref(rtdb, COUNTER_REF);
   
@@ -44,13 +53,16 @@ export function subscribeToCounter(callback) {
       callback({
         ...defaultState,
         ...data,
+        customText: {
+          ...defaultState.customText,
+          ...(data.customText || {})
+        },
         settings: {
           ...defaultState.settings,
           ...(data.settings || {})
         }
       });
     } else {
-      // Initialize with default state if empty
       set(counterRef, defaultState).then(() => callback(defaultState));
     }
   }, (error) => {
@@ -60,26 +72,73 @@ export function subscribeToCounter(callback) {
   return unsubscribe;
 }
 
-// Fetch single snapshot
-export async function getCounterState() {
+// Real-time listener for media library
+export function subscribeToMedia(callback) {
+  const mediaRef = ref(rtdb, MEDIA_REF);
+  return onValue(mediaRef, (snapshot) => {
+    if (snapshot.exists()) {
+      const val = snapshot.val();
+      const list = Object.entries(val).map(([id, item]) => ({
+        id,
+        ...item
+      }));
+      callback(list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)));
+    } else {
+      callback([]);
+    }
+  });
+}
+
+// Add media item to RTDB library
+export async function addMediaItem({ name, type, dataUrl, url }) {
+  const mediaRef = ref(rtdb, MEDIA_REF);
+  const newItemRef = push(mediaRef);
+  const item = {
+    name: name || "Uploaded media",
+    type: type || "image",
+    url: dataUrl || url || "",
+    createdAt: Date.now()
+  };
+  await set(newItemRef, item);
+  return { id: newItemRef.key, ...item };
+}
+
+// Remove media item
+export async function deleteMediaItem(id) {
+  const itemRef = ref(rtdb, `${MEDIA_REF}/${id}`);
+  await remove(itemRef);
+}
+
+// Switch active display pane
+export async function setActivePane(pane, selectedMediaId = null) {
+  const counterRef = ref(rtdb, COUNTER_REF);
+  const updates = {
+    activePane: pane,
+    updatedAt: new Date().toISOString()
+  };
+  if (selectedMediaId !== undefined) {
+    updates.selectedMediaId = selectedMediaId;
+  }
+  await update(counterRef, updates);
+}
+
+// Update custom text pane
+export async function updateCustomText(customText) {
   const counterRef = ref(rtdb, COUNTER_REF);
   const snap = await get(counterRef);
-  if (snap.exists()) {
-    const data = snap.val();
-    return {
-      ...defaultState,
-      ...data,
-      settings: {
-        ...defaultState.settings,
-        ...(data.settings || {})
-      }
-    };
-  }
-  return defaultState;
+  const current = snap.exists() ? snap.val() : defaultState;
+  const updates = {
+    customText: {
+      ...(current.customText || defaultState.customText),
+      ...customText
+    },
+    updatedAt: new Date().toISOString()
+  };
+  await update(counterRef, updates);
 }
 
 // Update counter state in RTDB
-export async function updateCounterInFirebase({ action, delta, goal, raised, settings }) {
+export async function updateCounterInFirebase({ action, delta, goal, raised, settings, activePane, selectedMediaId, customText }) {
   const counterRef = ref(rtdb, COUNTER_REF);
   const snap = await get(counterRef);
   const current = snap.exists() ? snap.val() : defaultState;
@@ -96,6 +155,10 @@ export async function updateCounterInFirebase({ action, delta, goal, raised, set
     settings: settings ? { ...(current.settings || defaultState.settings), ...settings } : (current.settings || defaultState.settings),
     updatedAt: new Date().toISOString()
   };
+
+  if (activePane) updates.activePane = activePane;
+  if (selectedMediaId !== undefined) updates.selectedMediaId = selectedMediaId;
+  if (customText) updates.customText = { ...(current.customText || defaultState.customText), ...customText };
 
   await update(counterRef, updates);
   return {
