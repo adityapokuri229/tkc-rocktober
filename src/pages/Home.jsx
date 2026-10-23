@@ -76,6 +76,45 @@ const CUSTOM_TEXT_SIZES = {
   }
 };
 
+const CUSTOM_TEXT_POSITIONS = {
+  center: {
+    wrapper: "items-center justify-center text-center",
+    align: "text-center"
+  },
+  top: {
+    wrapper: "items-start justify-center pt-8 sm:pt-16 pb-4 px-4 sm:px-12 text-center",
+    align: "text-center"
+  },
+  bottom: {
+    wrapper: "items-end justify-center pb-8 sm:pb-16 pt-4 px-4 sm:px-12 text-center",
+    align: "text-center"
+  },
+  "top-left": {
+    wrapper: "items-start justify-start p-6 sm:p-14 text-left",
+    align: "text-left"
+  },
+  "top-right": {
+    wrapper: "items-start justify-end p-6 sm:p-14 text-right",
+    align: "text-right"
+  },
+  "bottom-left": {
+    wrapper: "items-end justify-start p-6 sm:p-14 text-left",
+    align: "text-left"
+  },
+  "bottom-right": {
+    wrapper: "items-end justify-end p-6 sm:p-14 text-right",
+    align: "text-right"
+  },
+  left: {
+    wrapper: "items-center justify-start p-6 sm:p-14 text-left",
+    align: "text-left"
+  },
+  right: {
+    wrapper: "items-center justify-end p-6 sm:p-14 text-right",
+    align: "text-right"
+  }
+};
+
 export default function Home() {
   const [counterData, setCounterData] = useState(defaultState);
   const [mediaItems, setMediaItems] = useState([]);
@@ -151,14 +190,15 @@ export default function Home() {
 
       {/* ─── PANE 2: CUSTOM TEXT DISPLAY ─── */}
       {activePane === "custom" && (
-        <div className="relative z-10 w-full h-full flex items-center justify-center p-4 sm:p-12">
-          {(() => {
-            const textConfig = CUSTOM_TEXT_SIZES[customText.size || "medium"] || CUSTOM_TEXT_SIZES.medium;
-            const isTransparent = !!customText.transparentBg;
+        (() => {
+          const posConfig = CUSTOM_TEXT_POSITIONS[customText.position || "center"] || CUSTOM_TEXT_POSITIONS.center;
+          const textConfig = CUSTOM_TEXT_SIZES[customText.size || "medium"] || CUSTOM_TEXT_SIZES.medium;
+          const isTransparent = !!customText.transparentBg;
 
-            return (
+          return (
+            <div className={`relative z-10 w-full h-full flex ${posConfig.wrapper}`}>
               <div
-                className={`w-full ${textConfig.container} ${textConfig.cardPadding} text-center transition-all duration-300 ${
+                className={`w-full ${textConfig.container} ${textConfig.cardPadding} ${posConfig.align} transition-all duration-300 ${
                   isTransparent
                     ? "bg-transparent shadow-none border-0"
                     : "bg-surface-container/95 backdrop-blur-md shadow-[8px_8px_0px_#100e09] border border-outline-variant/30"
@@ -186,17 +226,17 @@ export default function Home() {
 
                 {customText.body && (
                   <div
-                    className={`max-w-3xl mx-auto font-body-lg ${textConfig.body} text-on-surface-variant leading-relaxed whitespace-pre-line ${
+                    className={`max-w-3xl font-body-lg ${textConfig.body} text-on-surface-variant leading-relaxed whitespace-pre-line ${
                       isTransparent ? "border-t border-outline-variant/20 drop-shadow-[2px_2px_0px_#100e09]" : "border-t border-outline-variant/30"
-                    }`}
+                    } ${posConfig.align === "text-left" ? "mr-auto" : posConfig.align === "text-right" ? "ml-auto" : "mx-auto"}`}
                   >
                     {customText.body}
                   </div>
                 )}
               </div>
-            );
-          })()}
-        </div>
+            </div>
+          );
+        })()
       )}
 
       {/* ─── PANE 3: DONATION COUNTER (DEFAULT) ─── */}
