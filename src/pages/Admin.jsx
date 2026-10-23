@@ -9,6 +9,7 @@ import {
   deleteMediaItem,
   updateCustomText,
   updateAudioFx,
+  updateHud,
   triggerEasterEgg,
   defaultState
 } from "../lib/firebase.js";
@@ -317,6 +318,13 @@ export default function Admin() {
     await updateAudioFx({ hiHatConfetti });
     setLoading(false);
     showFeedback(hiHatConfetti ? "Hi-Hat Auto Confetti ENABLED! 🥁🎉" : "Hi-Hat Confetti disabled.");
+  };
+
+  const handleToggleHudMode = async (showText) => {
+    setLoading(true);
+    await updateHud({ showText });
+    setLoading(false);
+    showFeedback(showText ? "HUD Mode: Text VISIBLE on /hud! 🎮" : "HUD Mode: Text HIDDEN on /hud! 🎮");
   };
 
   // ─── 1. PASSWORD GATE WITH NUMERIC KEYPAD ───
@@ -1167,6 +1175,29 @@ export default function Admin() {
           </button>
         </div>
 
+        {/* HUD Mode Text Visibility Toggle */}
+        <div className="flex items-center justify-between p-3 bg-surface-container-lowest border border-outline-variant/30 mt-1">
+          <div>
+            <div className="font-label-md text-xs uppercase font-extrabold text-on-surface">
+              HUD Mode Text Visibility
+            </div>
+            <div className="font-label-sm text-[11px] text-outline">
+              Decides whether this custom text slide is visible on the interactive /hud screen.
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => handleToggleHudMode(counter.hud?.showText === false ? true : false)}
+            className={`min-h-[38px] px-3.5 py-1.5 font-label-md text-xs uppercase font-extrabold border transition-all touch-manipulation active:scale-95 whitespace-nowrap ${
+              counter.hud?.showText !== false
+                ? "bg-secondary text-on-secondary border-secondary shadow-[2px_2px_0px_#100e09]"
+                : "bg-surface-container-highest text-outline border-outline-variant/40 hover:text-on-surface"
+            }`}
+          >
+            {counter.hud?.showText !== false ? "HUD TEXT: VISIBLE" : "HUD TEXT: HIDDEN"}
+          </button>
+        </div>
+
         <div className="flex flex-col sm:flex-row gap-2 justify-end mt-2">
           <button
             type="button"
@@ -1192,13 +1223,22 @@ export default function Admin() {
       <div className="w-full max-w-4xl mx-auto">
         {/* Navigation & Status */}
         <div className="flex items-center justify-between mb-4 pb-3 border-b border-outline-variant/20">
-          <Link
-            to="/"
-            target="_blank"
-            className="font-label-md text-xs uppercase tracking-wider text-secondary hover:underline flex items-center gap-1 font-bold py-1"
-          >
-            ↗ Open Display (TV)
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              to="/"
+              target="_blank"
+              className="font-label-md text-xs uppercase tracking-wider text-secondary hover:underline flex items-center gap-1 font-bold py-1"
+            >
+              ↗ Open Display (TV)
+            </Link>
+            <Link
+              to="/hud"
+              target="_blank"
+              className="font-label-md text-xs uppercase tracking-wider text-secondary hover:underline flex items-center gap-1 font-bold py-1 bg-surface-container-highest px-2.5 py-0.5 border border-secondary/30 shadow-[2px_2px_0px_#100e09]"
+            >
+              🎮 Open HUD (/hud)
+            </Link>
+          </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
@@ -1294,6 +1334,46 @@ export default function Admin() {
                 Custom announcements, slides, or shoutouts.
               </p>
             </button>
+          </div>
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════════
+            HUD MODE CONTROLLER (Movable Elements & Text Visibility)
+           ═══════════════════════════════════════════════════════════════ */}
+        <div className="bg-surface-container p-4 sm:p-5 shadow-[4px_4px_0px_#100e09] border border-outline-variant/30 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-secondary font-headline-md text-lg">🎮</span>
+                <h3 className="font-headline-md text-base sm:text-lg uppercase tracking-tight text-on-surface font-bold">
+                  HUD Mode &amp; Freeform Canvas (/hud)
+                </h3>
+              </div>
+              <p className="font-body-sm text-xs text-outline max-w-xl">
+                On <Link to="/hud" target="_blank" className="text-secondary underline font-bold">/hud</Link>, you can select and freely drag around anything (image, custom text, donation counter, big %) anywhere on screen.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => handleToggleHudMode(counter.hud?.showText === false ? true : false)}
+                className={`min-h-[42px] px-4 py-2 font-label-md text-xs uppercase font-extrabold border transition-all touch-manipulation active:scale-95 whitespace-nowrap ${
+                  counter.hud?.showText !== false
+                    ? "bg-secondary text-on-secondary border-secondary shadow-[3px_3px_0px_#100e09]"
+                    : "bg-surface-container-highest text-outline border-outline-variant/40 hover:text-on-surface"
+                }`}
+              >
+                {counter.hud?.showText !== false ? "HUD Mode: TEXT VISIBLE" : "HUD Mode: TEXT HIDDEN"}
+              </button>
+              <Link
+                to="/hud"
+                target="_blank"
+                className="min-h-[42px] px-3.5 py-2 font-label-md text-xs uppercase font-bold bg-surface hover:bg-secondary hover:text-on-secondary text-secondary border border-secondary/40 shadow-[2px_2px_0px_#100e09] transition-colors flex items-center"
+              >
+                Launch /hud ↗
+              </Link>
+            </div>
           </div>
         </div>
 

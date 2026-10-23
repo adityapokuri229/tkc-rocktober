@@ -52,6 +52,15 @@ export const defaultState = {
     customColor: "",
     squareShadow: true
   },
+  hud: {
+    showText: true,
+    layout: {
+      counter: { x: 50, y: 70 },
+      customText: { x: 50, y: 30 },
+      media: { x: 50, y: 50 },
+      bigPct: { x: 12, y: 15 }
+    }
+  },
   updatedAt: new Date().toISOString()
 };
 
@@ -178,6 +187,16 @@ export async function triggerEasterEgg(eggName) {
   setTimeout(() => {
     updateAudioFx({ easterEgg: null }).catch(() => {});
   }, 6000);
+}
+
+// Update HUD configuration in RTDB
+export async function updateHud(hudUpdates) {
+  const counterRef = ref(rtdb, COUNTER_REF);
+  const snap = await get(counterRef);
+  const current = snap.exists() ? snap.val() : defaultState;
+  const newHud = { ...(current.hud || defaultState.hud), ...hudUpdates };
+  await update(counterRef, { hud: newHud, updatedAt: new Date().toISOString() });
+  return newHud;
 }
 
 // Update counter state in RTDB

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ContentProvider } from "./lib/content.jsx";
 import Home from "./pages/Home.jsx";
 import Admin from "./pages/Admin.jsx";
+import Hud from "./pages/Hud.jsx";
 import "./styles/tokens.css";
 
 export default function App() {
@@ -11,6 +12,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/hud" element={<Hud />} />
         </Routes>
       </BrowserRouter>
     </ContentProvider>
