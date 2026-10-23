@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { audioEngine } from "../lib/audioEngine.js";
 
-export default function AudioVisualizerCanvas({ audioFx }) {
+export default function AudioVisualizerCanvas({ audioFx, className = "fixed inset-0 pointer-events-none z-20 w-full h-full" }) {
   const canvasRef = useRef(null);
   const [hasMicAccess, setHasMicAccess] = useState(audioEngine.isListening || audioEngine.simulate);
   const [showPrompt, setShowPrompt] = useState(false);
@@ -204,7 +204,7 @@ export default function AudioVisualizerCanvas({ audioFx }) {
     <>
       <canvas
         ref={canvasRef}
-        className="fixed inset-0 pointer-events-none z-0 w-full h-full"
+        className={className}
       />
 
       {/* Discrete Screen Click-to-Start Banner (if browser blocked automatic mic capture) */}

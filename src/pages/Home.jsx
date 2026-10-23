@@ -118,7 +118,7 @@ export default function Home() {
               </p>
             </div>
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-black/60 backdrop-blur-[2px]">
+            <div className="w-full h-full flex items-center justify-center bg-black">
               {selectedMedia.type === "video" ? (
                 <video
                   src={selectedMedia.url}
