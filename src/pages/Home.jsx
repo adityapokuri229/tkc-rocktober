@@ -99,11 +99,19 @@ export default function Home() {
   const selectedMedia = mediaItems.find((m) => m.id === counterData.selectedMediaId) || mediaItems[0];
   const customText = counterData.customText || defaultState.customText;
 
+  // Layering control:
+  // - In Media pane: visualizer renders ON TOP of images/videos (z-20)
+  // - In Counter & Custom Text panes: visualizer renders BEHIND the main card/thermometer (z-0)
+  const visualizerZ = activePane === "media" ? "z-20" : "z-0";
+
   // Render pane content inside a consistent root layout that houses AudioVisualizerCanvas
   return (
     <div className="relative min-h-screen w-screen h-screen overflow-hidden bg-surface select-none">
       {/* ─── UNIVERSAL AUDIO-REACTIVE VISUAL FX OVERLAY (ACROSS ALL PANES) ─── */}
-      <AudioVisualizerCanvas audioFx={counterData.audioFx} />
+      <AudioVisualizerCanvas
+        audioFx={counterData.audioFx}
+        className={`fixed inset-0 pointer-events-none ${visualizerZ} w-full h-full`}
+      />
 
       {/* ─── PANE 1: MEDIA DISPLAY (IMAGE / VIDEO) ─── */}
       {activePane === "media" && (
