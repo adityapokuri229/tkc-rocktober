@@ -312,6 +312,13 @@ export default function Admin() {
     showFeedback(`🎉 Easter Egg fired: ${eggName.toUpperCase()}!`);
   };
 
+  const handleToggleHiHatConfetti = async (hiHatConfetti) => {
+    setLoading(true);
+    await updateAudioFx({ hiHatConfetti });
+    setLoading(false);
+    showFeedback(hiHatConfetti ? "Hi-Hat Auto Confetti ENABLED! 🥁🎉" : "Hi-Hat Confetti disabled.");
+  };
+
   // ─── 1. PASSWORD GATE WITH NUMERIC KEYPAD ───
   if (!isAuthenticated) {
     return (
@@ -851,6 +858,29 @@ export default function Admin() {
                     ⚡ Moshpit Strobe
                   </button>
                 </div>
+              </div>
+
+              {/* Hi-Hat Auto Confetti Feature */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-2.5 bg-surface-container-lowest border border-outline-variant/30">
+                <div>
+                  <div className="font-label-md text-xs uppercase font-extrabold text-on-surface flex items-center gap-1.5">
+                    <span>🥁</span> HI-HAT AUTO CONFETTI
+                  </div>
+                  <div className="font-label-sm text-[11px] text-outline">
+                    Automatically showers shimmering micro-confetti on every hi-hat / cymbal hit!
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleToggleHiHatConfetti(counter.audioFx?.hiHatConfetti === false ? true : false)}
+                  className={`min-h-[36px] px-3.5 py-1 font-label-md text-xs uppercase font-extrabold border transition-all touch-manipulation active:scale-95 whitespace-nowrap ${
+                    counter.audioFx?.hiHatConfetti !== false
+                      ? "bg-secondary text-on-secondary border-secondary shadow-[2px_2px_0px_#100e09]"
+                      : "bg-surface-container-highest text-outline border-outline-variant/40 hover:text-on-surface"
+                  }`}
+                >
+                  {counter.audioFx?.hiHatConfetti !== false ? "🎉 AUTO CONFETTI: ON" : "CONFETTI: OFF"}
+                </button>
               </div>
 
               {/* Demo Beat Simulator Mode Toggle */}

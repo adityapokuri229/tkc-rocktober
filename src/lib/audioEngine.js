@@ -19,8 +19,11 @@ class AudioReactiveEngine {
     this.volume = 0;
     this.rawVolume = 0;
     this.peak = 0;
+    this.treblePeak = 0;
     this.beatDetected = false;
+    this.hiHatDetected = false;
     this.lastBeatTime = 0;
+    this.lastHiHatTime = 0;
     this.listeners = new Set();
     this.unlockListenerAttached = false;
   }
@@ -155,9 +158,11 @@ class AudioReactiveEngine {
       const now = performance.now();
       this.simPhase += 0.05;
       
-      // 128 BPM simulation (beat every 468ms)
+      // 128 BPM simulation (beat every 468ms, 8th-note hi-hat every 234ms)
       const beatCycle = (now % 468.75) / 468.75;
       const isBeat = beatCycle < 0.15;
+      const hiHatCycle = (now % 234.375) / 234.375;
+      const isHiHat = hiHatCycle < 0.12;
       
       const kickEnv = Math.max(0, 1 - beatCycle * 2.5);
       const bassVal = kickEnv * 0.95 + Math.sin(this.simPhase * 2) * 0.1 + 0.1;
@@ -183,6 +188,7 @@ class AudioReactiveEngine {
         volume: Math.min(1.5, vol * this.sensitivity),
         rawVolume: Math.min(100, Math.round(vol * 100)),
         beatDetected: isBeat,
+        hiHatDetected: isHiHat,
         dataArray: fakeDataArray,
         timeDomainArray: fakeTimeArray
       };
@@ -197,6 +203,7 @@ class AudioReactiveEngine {
         volume: 0,
         rawVolume: 0,
         beatDetected: false,
+        hiHatDetected: false,
         dataArray: null,
         timeDomainArray: null
       };
@@ -262,6 +269,23 @@ class AudioReactiveEngine {
       this.peak = Math.max(0.08, this.peak * 0.93);
     }
 
+    // Hi-Hat / High-frequency cymbal transient detection (5kHz - 16kHz)
+    let hiHatSum = 0;
+    const hiHatStart = Math.min(len - 1, Math.floor(len * 0.45));
+    for (let i = hiHatStart; i < len; i++) {
+      hiHatSum += this.dataArray[i];
+    }
+    const rawHiHat = (hiHatSum / (len - hiHatStart) / 255) * this.sensitivity;
+
+    let isHiHat = false;
+    if (rawHiHat > 0.18 && rawHiHat > this.treblePeak * 1.12 && now - this.lastHiHatTime > 105) {
+      isHiHat = true;
+      this.lastHiHatTime = now;
+      this.treblePeak = rawHiHat;
+    } else {
+      this.treblePeak = Math.max(0.06, this.treblePeak * 0.93);
+    }
+
     return {
       isListening: true,
       bass: Math.min(1.8, this.bass),
@@ -270,6 +294,7 @@ class AudioReactiveEngine {
       volume: Math.min(1.8, this.volume),
       rawVolume: this.rawVolume,
       beatDetected: isBeat,
+      hiHatDetected: isHiHat,
       dataArray: this.dataArray,
       timeDomainArray: this.timeDomainArray
     };

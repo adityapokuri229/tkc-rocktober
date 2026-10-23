@@ -383,7 +383,31 @@ export default function AudioVisualizerCanvas({
         ctx.restore();
       }
 
-      // ─── 7. EASTER EGG: CONFETTI EXPLOSION ───
+      // ─── HI-HAT AUTO CONFETTI TRIGGER ───
+      const allowHiHat = audioFx.hiHatConfetti !== false;
+      if (allowHiHat && metrics.hiHatDetected) {
+        const confettiPalette = ["#ffd2a4", "#5dd9d0", "#ff2d75", "#c7bfff", "#86ecd5", "#ffb4ab", "#ffffff"];
+        const burstCount = 6;
+        for (let i = 0; i < burstCount; i++) {
+          confetti.push({
+            x: Math.random() * width,
+            y: Math.random() * -20,
+            vx: (Math.random() - 0.5) * 5,
+            vy: 3 + Math.random() * 5,
+            rotation: Math.random() * 360,
+            rotSpeed: (Math.random() - 0.5) * 16,
+            size: 6 + Math.random() * 10,
+            color: confettiPalette[Math.floor(Math.random() * confettiPalette.length)],
+            life: 1.0,
+            decay: 0.008 + Math.random() * 0.009
+          });
+        }
+        if (confetti.length > 180) {
+          confetti.splice(0, confetti.length - 180);
+        }
+      }
+
+      // ─── 7. EASTER EGG & AUTO CONFETTI RENDER ───
       if (confetti.length > 0) {
         ctx.save();
         for (let i = confetti.length - 1; i >= 0; i--) {
@@ -449,7 +473,7 @@ export default function AudioVisualizerCanvas({
       cancelAnimationFrame(animId);
       window.removeEventListener("resize", resize);
     };
-  }, [audioFx?.enabled, audioFx?.mode, audioFx?.sensitivity, audioFx?.simulateBeat, audioFx?.colorPalette, audioFx?.wavePosition, audioFx?.easterEgg]);
+  }, [audioFx?.enabled, audioFx?.mode, audioFx?.sensitivity, audioFx?.simulateBeat, audioFx?.colorPalette, audioFx?.wavePosition, audioFx?.easterEgg, audioFx?.hiHatConfetti]);
 
   if (!audioFx?.enabled) return null;
 

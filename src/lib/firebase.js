@@ -37,6 +37,7 @@ export const defaultState = {
     colorPalette: "chromatic", // 'chromatic' | 'cyberpunk' | 'sunset' | 'emerald' | 'monochrome'
     wavePosition: "center", // 'center' | 'bottom' | 'hidden'
     intensity: "high", // 'low' | 'medium' | 'high'
+    hiHatConfetti: true,
     easterEgg: null // null | 'confetti' | 'rockhand' | 'moshpit'
   },
   settings: {
