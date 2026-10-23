@@ -58,6 +58,7 @@ export const defaultState = {
 
 const COUNTER_REF = "counter";
 const MEDIA_REF = "mediaItems";
+const LIVE_DROPS_REF = "liveDrops";
 
 // Real-time listener for screen state
 export function subscribeToCounter(callback) {
@@ -107,6 +108,39 @@ export function subscribeToMedia(callback) {
       callback([]);
     }
   });
+}
+
+// Real-time listener for Live Bubble Drops
+export function subscribeToLiveDrops(callback) {
+  const dropsRef = ref(rtdb, LIVE_DROPS_REF);
+  return onValue(dropsRef, (snapshot) => {
+    if (snapshot.exists()) {
+      const val = snapshot.val();
+      const list = Object.entries(val).map(([id, item]) => ({
+        id,
+        ...item
+      }));
+      callback(list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)));
+    } else {
+      callback([]);
+    }
+  });
+}
+
+// Send a Live Bubble Drop to TV screen
+export async function sendLiveDrop({ text, style = "cyan", emoji = "💬", author = "" }) {
+  if (!text || !text.trim()) return;
+  const dropsRef = ref(rtdb, LIVE_DROPS_REF);
+  const newDropRef = push(dropsRef);
+  const drop = {
+    text: text.trim(),
+    style: style || "cyan",
+    emoji: emoji || "💬",
+    author: author || "",
+    createdAt: Date.now()
+  };
+  await set(newDropRef, drop);
+  return { id: newDropRef.key, ...drop };
 }
 
 // Add media item to RTDB library

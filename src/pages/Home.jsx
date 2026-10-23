@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { subscribeToCounter, subscribeToMedia, defaultState } from "../lib/firebase.js";
 import AudioVisualizerCanvas from "../components/AudioVisualizerCanvas.jsx";
+import LiveDropOverlay from "../components/LiveDropOverlay.jsx";
 
 const SIZE_CLASSES = {
   compact: {
@@ -151,6 +152,9 @@ export default function Home() {
         audioFx={counterData.audioFx}
         className={`fixed inset-0 pointer-events-none ${visualizerZ} w-full h-full`}
       />
+
+      {/* ─── LIVE BUBBLE DROPS OVERLAY (FLOATS DOWN & FADES) ─── */}
+      <LiveDropOverlay />
 
       {/* ─── PANE 1: MEDIA DISPLAY (IMAGE / VIDEO) ─── */}
       {activePane === "media" && (

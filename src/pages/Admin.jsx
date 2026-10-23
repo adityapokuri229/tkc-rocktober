@@ -10,6 +10,7 @@ import {
   updateCustomText,
   updateAudioFx,
   triggerEasterEgg,
+  sendLiveDrop,
   defaultState
 } from "../lib/firebase.js";
 
@@ -44,6 +45,19 @@ export default function Admin() {
   const [headingInput, setHeadingInput] = useState("");
   const [subheadingInput, setSubheadingInput] = useState("");
   const [bodyInput, setBodyInput] = useState("");
+
+  // Live Drop State
+  const [dropText, setDropText] = useState("");
+  const [dropStyle, setDropStyle] = useState("cyan");
+  const [dropEmoji, setDropEmoji] = useState("💬");
+  const [dropAuthor, setDropAuthor] = useState("");
+  const [sendingDrop, setSendingDrop] = useState(false);
+  const [recentDrops, setRecentDrops] = useState([
+    "🎉 THANK YOU FOR DONATING!",
+    "🔥 ROCK ON EVERYONE!",
+    "🤘 NEXT BAND UP IN 5 MINS!",
+    "❤️ SUPPORT UNDERPRIVILEGED EDUCATION!"
+  ]);
 
   const [statusMsg, setStatusMsg] = useState("");
   const [loading, setLoading] = useState(false);
@@ -317,6 +331,28 @@ export default function Admin() {
     await updateAudioFx({ hiHatConfetti });
     setLoading(false);
     showFeedback(hiHatConfetti ? "Hi-Hat Auto Confetti ENABLED! 🥁🎉" : "Hi-Hat Confetti disabled.");
+  };
+
+  const handleSendLiveDrop = async (e, textOverride = null) => {
+    e?.preventDefault();
+    const textToSend = (textOverride || dropText).trim();
+    if (!textToSend) return;
+
+    setSendingDrop(true);
+    await sendLiveDrop({
+      text: textToSend,
+      style: dropStyle,
+      emoji: dropEmoji,
+      author: dropAuthor.trim()
+    });
+
+    if (!textOverride) setDropText("");
+    setRecentDrops((prev) => {
+      const filtered = prev.filter((t) => t !== textToSend);
+      return [textToSend, ...filtered].slice(0, 6);
+    });
+    setSendingDrop(false);
+    showFeedback(`Live drop sent: "${textToSend}" 🚀`);
   };
 
   // ─── 1. PASSWORD GATE WITH NUMERIC KEYPAD ───
@@ -1338,6 +1374,117 @@ export default function Admin() {
               </p>
             </button>
           </div>
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════════
+            LIVE DROP BUBBLE MESSAGE CONTROLLER (FLOATS & FADES ON SCREEN)
+           ═══════════════════════════════════════════════════════════════ */}
+        <div className="bg-surface-container p-4 sm:p-6 shadow-[4px_4px_0px_#100e09] border border-outline-variant/30 mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">💬</span>
+              <h3 className="font-headline-md text-base sm:text-lg uppercase tracking-tight text-on-surface font-bold">
+                Live Drop (Bubble Message On Screen)
+              </h3>
+            </div>
+            <span className="bg-secondary/15 text-secondary font-label-sm text-[10px] px-2 py-0.5 uppercase font-bold tracking-wider">
+              ✦ Floats Down &amp; Fades
+            </span>
+          </div>
+          <p className="font-body-sm text-xs text-outline mb-3.5">
+            Type any shoutout, table announcement, or sponsor note to drop it live on the big screen. It floats down smoothly and slowly dissolves over 8 seconds.
+          </p>
+
+          <form onSubmit={handleSendLiveDrop} className="space-y-3">
+            {/* Message Input */}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                placeholder="Type bubble message... (e.g. VIP Table 3 donated ₹10,000!)"
+                value={dropText}
+                onChange={(e) => setDropText(e.target.value)}
+                className="flex-1 bg-surface-container-lowest border border-outline-variant/40 px-3.5 py-2.5 text-on-surface font-label-md text-sm outline-none focus:border-secondary min-h-[44px]"
+              />
+              <button
+                type="submit"
+                disabled={sendingDrop || !dropText.trim()}
+                className="bg-secondary text-on-secondary font-label-md uppercase text-xs px-5 py-2.5 font-extrabold hover:bg-secondary-fixed transition-colors disabled:opacity-40 min-h-[44px] shadow-[3px_3px_0px_#100e09] active:scale-95 touch-manipulation whitespace-nowrap"
+              >
+                {sendingDrop ? "Dropping..." : "Drop on Screen 🚀"}
+              </button>
+            </div>
+
+            {/* Customizer: Color Theme & Emoji Picker */}
+            <div className="flex flex-wrap items-center justify-between gap-3 p-2.5 bg-surface-container-lowest border border-outline-variant/30">
+              {/* Emoji Picker */}
+              <div className="flex items-center gap-1.5">
+                <span className="font-label-sm text-[11px] text-outline uppercase font-bold mr-1">
+                  Icon:
+                </span>
+                {["💬", "🔥", "❤️", "🤘", "🎉", "🥁", "✨", "🍻"].map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => setDropEmoji(emoji)}
+                    className={`w-7 h-7 flex items-center justify-center text-sm border transition-colors touch-manipulation ${
+                      dropEmoji === emoji
+                        ? "bg-secondary text-on-secondary border-secondary shadow-[1px_1px_0px_#100e09]"
+                        : "bg-surface hover:bg-surface-container-highest border-outline-variant/30 text-on-surface"
+                    }`}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+
+              {/* Color Theme */}
+              <div className="flex items-center gap-1.5">
+                <span className="font-label-sm text-[11px] text-outline uppercase font-bold mr-1">
+                  Color:
+                </span>
+                {[
+                  { id: "cyan", label: "Cyan", color: "#5dd9d0" },
+                  { id: "magenta", label: "Magenta", color: "#ff2d75" },
+                  { id: "gold", label: "Gold", color: "#ffd2a4" },
+                  { id: "purple", label: "Purple", color: "#c7bfff" },
+                  { id: "emerald", label: "Emerald", color: "#86ecd5" }
+                ].map((th) => (
+                  <button
+                    key={th.id}
+                    type="button"
+                    onClick={() => setDropStyle(th.id)}
+                    style={{ borderColor: th.color }}
+                    className={`px-2 py-0.5 text-[10px] font-label-sm uppercase font-bold border transition-all touch-manipulation ${
+                      dropStyle === th.id
+                        ? "bg-secondary text-on-secondary shadow-[1px_1px_0px_#100e09]"
+                        : "bg-surface text-on-surface hover:bg-surface-container-highest"
+                    }`}
+                  >
+                    {th.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Quick 1-Tap Drop Chips */}
+            <div>
+              <div className="font-label-sm text-[11px] text-outline uppercase font-bold mb-1.5">
+                Quick 1-Tap Presets (Click to Drop Instantly):
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {recentDrops.map((text, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={(e) => handleSendLiveDrop(e, text)}
+                    className="bg-surface hover:bg-secondary hover:text-on-secondary text-on-surface border border-outline-variant/40 px-2.5 py-1 text-[11px] font-label-md font-bold uppercase transition-all shadow-[1px_1px_0px_#100e09] active:scale-95 touch-manipulation"
+                  >
+                    {text}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </form>
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════
