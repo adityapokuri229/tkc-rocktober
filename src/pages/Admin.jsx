@@ -8,6 +8,7 @@ import {
   addMediaItem,
   deleteMediaItem,
   updateCustomText,
+  updateAudioFx,
   defaultState
 } from "../lib/firebase.js";
 
@@ -267,6 +268,25 @@ export default function Admin() {
   const handleSaveTitle = async (e) => {
     e?.preventDefault();
     await handleUpdateSettings({ title: titleInput });
+  };
+
+  // ─── AUDIO FX CONTROLS ───
+  const handleToggleAudioFx = async (enabled) => {
+    setLoading(true);
+    await updateAudioFx({ enabled });
+    setLoading(false);
+    showFeedback(enabled ? "Live Audio FX enabled!" : "Audio FX disabled.");
+  };
+
+  const handleSetAudioFxMode = async (mode) => {
+    setLoading(true);
+    await updateAudioFx({ mode });
+    setLoading(false);
+    showFeedback(`Audio visualizer set to ${mode.toUpperCase()}!`);
+  };
+
+  const handleSetAudioSensitivity = async (sensitivity) => {
+    await updateAudioFx({ sensitivity: Number(sensitivity) });
   };
 
   // ─── 1. PASSWORD GATE WITH NUMERIC KEYPAD ───
@@ -634,6 +654,93 @@ export default function Admin() {
               <div className="font-body-sm text-[11px] text-on-surface-variant">Hide figures from screen</div>
             </div>
           </label>
+        </div>
+
+        {/* ─── LIVE AUDIO-REACTIVE VISUAL FX CONTROLS ─── */}
+        <div className="mt-4 pt-4 border-t border-outline-variant/20 bg-surface-container-lowest p-3.5 border border-outline-variant/30">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-secondary text-base">🎙️</span>
+              <div>
+                <span className="font-label-md text-xs uppercase text-secondary font-extrabold tracking-wider block">
+                  Audio-Reactive Concert Visual FX
+                </span>
+                <span className="font-body-sm text-[11px] text-outline">
+                  Listens to live band audio and pulses visualizers on TV screen
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => handleToggleAudioFx(!counter.audioFx?.enabled)}
+              className={`min-h-[38px] px-3.5 py-1.5 font-label-md text-xs uppercase font-extrabold border transition-all touch-manipulation active:scale-95 ${
+                counter.audioFx?.enabled
+                  ? "bg-secondary text-on-secondary border-secondary shadow-[2px_2px_0px_#100e09]"
+                  : "bg-surface-container-highest text-outline border-outline-variant/40 hover:text-on-surface"
+              }`}
+            >
+              {counter.audioFx?.enabled ? "● Audio FX: ACTIVE" : "○ Audio FX: OFF"}
+            </button>
+          </div>
+
+          {counter.audioFx?.enabled && (
+            <div className="space-y-3 pt-2 border-t border-outline-variant/20 animate-fade-in">
+              {/* FX Mode Selector */}
+              <div>
+                <label className="block font-label-sm text-[11px] text-outline uppercase font-bold mb-1.5">
+                  Visualizer FX Mode
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
+                  {[
+                    { id: "full", label: "⚡ Full Rave" },
+                    { id: "spectrum", label: "📊 Spectrum" },
+                    { id: "pulse", label: "💥 Bass Pulse" },
+                    { id: "particles", label: "✨ Beat Sparks" },
+                    { id: "wave", label: "🌊 Soundwave" }
+                  ].map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => handleSetAudioFxMode(m.id)}
+                      className={`min-h-[38px] py-1 px-2 font-label-md text-xs uppercase font-bold border transition-colors touch-manipulation active:scale-95 ${
+                        (counter.audioFx?.mode || "full") === m.id
+                          ? "bg-secondary text-on-secondary border-secondary shadow-[2px_2px_0px_#100e09]"
+                          : "bg-surface text-on-surface border-outline-variant/30 hover:border-secondary"
+                      }`}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sensitivity Slider */}
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="font-label-sm text-[11px] text-outline uppercase font-bold">
+                    Microphone Pickup Sensitivity
+                  </label>
+                  <span className="font-label-sm text-xs text-secondary font-bold">
+                    {(counter.audioFx?.sensitivity || 1.2).toFixed(1)}x
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.4"
+                  max="3.0"
+                  step="0.1"
+                  value={counter.audioFx?.sensitivity || 1.2}
+                  onChange={(e) => handleSetAudioSensitivity(e.target.value)}
+                  className="w-full accent-[#5dd9d0] cursor-pointer min-h-[32px]"
+                />
+                <div className="flex justify-between text-[10px] font-label-sm text-outline uppercase">
+                  <span>Loud Rock Band (0.5x)</span>
+                  <span>Acoustic / Vocals (1.5x - 3.0x)</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

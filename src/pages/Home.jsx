@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { subscribeToCounter, subscribeToMedia, defaultState } from "../lib/firebase.js";
+import AudioVisualizerCanvas from "../components/AudioVisualizerCanvas.jsx";
 
 const SIZE_CLASSES = {
   compact: {
@@ -190,6 +191,9 @@ export default function Home() {
 
   return (
     <div className="relative bg-surface font-body-md text-body-md text-on-surface antialiased min-h-screen flex items-center justify-center p-4 sm:p-8 select-none overflow-hidden">
+      {/* ─── LIVE AUDIO-REACTIVE VISUAL FX OVERLAY ─── */}
+      <AudioVisualizerCanvas audioFx={counterData.audioFx} />
+
       {/* ─── BIG PERCENTAGE IN TOP LEFT CORNER (TOGGLED FROM ADMIN) ─── */}
       {bigPercentage && (
         <div className="absolute top-5 left-5 sm:top-10 sm:left-10 z-20 flex flex-col items-start leading-none pointer-events-none animate-fade-in">

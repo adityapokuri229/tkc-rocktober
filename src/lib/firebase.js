@@ -27,6 +27,12 @@ export const defaultState = {
     size: "medium", // 'compact' | 'medium' | 'large' | 'huge'
     style: "highlight" // 'highlight' | 'minimal' | 'banner'
   },
+  audioFx: {
+    enabled: true,
+    mode: "full", // 'spectrum' | 'pulse' | 'particles' | 'wave' | 'full'
+    sensitivity: 1.2,
+    reactiveCard: true
+  },
   settings: {
     title: "MUSIC FOR A CHANGE",
     size: "medium",
@@ -58,6 +64,10 @@ export function subscribeToCounter(callback) {
         customText: {
           ...defaultState.customText,
           ...(data.customText || {})
+        },
+        audioFx: {
+          ...defaultState.audioFx,
+          ...(data.audioFx || {})
         },
         settings: {
           ...defaultState.settings,
@@ -139,8 +149,24 @@ export async function updateCustomText(customText) {
   await update(counterRef, updates);
 }
 
+// Update audio FX settings
+export async function updateAudioFx(audioFx) {
+  const counterRef = ref(rtdb, COUNTER_REF);
+  const snap = await get(counterRef);
+  const current = snap.exists() ? snap.val() : defaultState;
+  const updates = {
+    audioFx: {
+      ...(current.audioFx || defaultState.audioFx),
+      ...audioFx
+    },
+    updatedAt: new Date().toISOString()
+  };
+  await update(counterRef, updates);
+  return { ...current, ...updates };
+}
+
 // Update counter state in RTDB
-export async function updateCounterInFirebase({ action, delta, goal, raised, settings, activePane, selectedMediaId, customText }) {
+export async function updateCounterInFirebase({ action, delta, goal, raised, settings, activePane, selectedMediaId, customText, audioFx }) {
   const counterRef = ref(rtdb, COUNTER_REF);
   const snap = await get(counterRef);
   const current = snap.exists() ? snap.val() : defaultState;
@@ -161,6 +187,7 @@ export async function updateCounterInFirebase({ action, delta, goal, raised, set
   if (activePane) updates.activePane = activePane;
   if (selectedMediaId !== undefined) updates.selectedMediaId = selectedMediaId;
   if (customText) updates.customText = { ...(current.customText || defaultState.customText), ...customText };
+  if (audioFx) updates.audioFx = { ...(current.audioFx || defaultState.audioFx), ...audioFx };
 
   await update(counterRef, updates);
   return {
