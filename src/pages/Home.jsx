@@ -5,7 +5,7 @@ const SIZE_CLASSES = {
   compact: {
     container: "max-w-xl",
     title: "text-2xl sm:text-3xl mb-4 sm:mb-5",
-    cardPadding: "px-4 pb-4 pt-1 sm:px-5 sm:pb-5 sm:pt-1.5",
+    cardPadding: "px-4 pb-4 pt-2 sm:px-5 sm:pb-5 sm:pt-2.5",
     label: "text-xs sm:text-sm",
     pctBadge: "text-xs sm:text-sm px-2 py-0.5",
     tally: "text-sm sm:text-base",
@@ -15,7 +15,7 @@ const SIZE_CLASSES = {
   medium: {
     container: "max-w-3xl",
     title: "text-3xl sm:text-4xl md:text-5xl mb-6 sm:mb-7",
-    cardPadding: "px-6 pb-6 pt-1.5 sm:px-8 sm:pb-8 sm:pt-2",
+    cardPadding: "px-6 pb-6 pt-2.5 sm:px-8 sm:pb-8 sm:pt-3",
     label: "text-sm sm:text-base",
     pctBadge: "text-sm sm:text-base px-3 py-1",
     tally: "text-base sm:text-lg",
@@ -25,7 +25,7 @@ const SIZE_CLASSES = {
   large: {
     container: "max-w-5xl",
     title: "text-4xl sm:text-6xl md:text-7xl mb-8 sm:mb-9",
-    cardPadding: "px-8 pb-8 pt-2 sm:px-12 sm:pb-12 sm:pt-3",
+    cardPadding: "px-8 pb-8 pt-3 sm:px-12 sm:pb-12 sm:pt-4",
     label: "text-base sm:text-xl",
     pctBadge: "text-base sm:text-xl px-4 py-1.5",
     tally: "text-xl sm:text-2xl",
@@ -35,7 +35,7 @@ const SIZE_CLASSES = {
   huge: {
     container: "max-w-7xl",
     title: "text-5xl sm:text-7xl md:text-8xl mb-10 sm:mb-12",
-    cardPadding: "px-10 pb-10 pt-2 sm:px-16 sm:pb-16 sm:pt-3",
+    cardPadding: "px-10 pb-10 pt-4 sm:px-16 sm:pb-16 sm:pt-5",
     label: "text-lg sm:text-2xl",
     pctBadge: "text-lg sm:text-2xl px-5 py-2",
     tally: "text-2xl sm:text-4xl",
@@ -154,16 +154,36 @@ export default function Home() {
   const firstWords = words.join(" ");
 
   return (
-    <div className="bg-surface font-body-md text-body-md text-on-surface antialiased min-h-screen flex items-center justify-center p-4 sm:p-8">
-      <div className={`w-full ${sizeConfig.container} transition-all duration-300`}>
-        {/* Main Heading Text: slightly bigger in proportion */}
+    <div className="relative bg-surface font-body-md text-body-md text-on-surface antialiased min-h-screen flex items-center justify-center p-4 sm:p-8 overflow-hidden select-none">
+      {/* ─── FULL-SCREEN BACKGROUND PROGRESS WATERMARK FILL ─── */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 flex items-center justify-center">
+        {/* Fill from bottom to top based on percentage */}
+        <div
+          className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-secondary/15 via-secondary/10 to-transparent transition-all duration-1000 ease-out"
+          style={{ height: `${pct}%` }}
+        />
+
+        {/* Ambient glow line at current percentage level */}
+        <div
+          className="absolute inset-x-0 h-[2px] bg-secondary/40 shadow-[0_0_20px_#5dd9d0] transition-all duration-1000 ease-out"
+          style={{ bottom: `${pct}%` }}
+        />
+
+        {/* Massive Background Percentage Watermark */}
+        <div className="font-headline-xl font-black text-secondary/[0.07] select-none text-[32vw] tracking-tighter leading-none transform translate-y-6">
+          {Math.round(pct)}%
+        </div>
+      </div>
+
+      {/* Main Foreground Donation Card */}
+      <div className={`relative z-10 w-full ${sizeConfig.container} transition-all duration-300`}>
+        {/* Main Heading Text */}
         <h1 className={`font-headline-lg ${sizeConfig.title} uppercase tracking-tight text-on-surface text-center sm:text-left font-extrabold`}>
           {firstWords ? `${firstWords} ` : ""}<span className="text-secondary">{lastWord || title}</span>
         </h1>
 
         {/* EXACT ORIGINAL SQUARE THERMOMETER BAR */}
-        <div className={`bg-surface-container ${sizeConfig.cardPadding} shadow-[6px_6px_0px_#100e09] border border-outline-variant/30`}>
-          {/* Reduced top spacing/border margin on top of crowdfund progress */}
+        <div className={`bg-surface-container/95 backdrop-blur-md ${sizeConfig.cardPadding} shadow-[6px_6px_0px_#100e09] border border-outline-variant/30`}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2.5">
             <div className="flex items-center gap-3">
               <span className={`font-label-md ${sizeConfig.label} uppercase tracking-wider text-on-surface font-bold`}>
