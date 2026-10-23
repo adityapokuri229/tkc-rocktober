@@ -146,22 +146,42 @@ export default function Home() {
         <div className="relative z-10 w-full h-full flex items-center justify-center p-4 sm:p-12">
           {(() => {
             const textConfig = CUSTOM_TEXT_SIZES[customText.size || "medium"] || CUSTOM_TEXT_SIZES.medium;
+            const isTransparent = !!customText.transparentBg;
+
             return (
-              <div className={`w-full ${textConfig.container} bg-surface-container/95 backdrop-blur-md ${textConfig.cardPadding} shadow-[8px_8px_0px_#100e09] border border-outline-variant/30 text-center transition-all duration-300`}>
+              <div
+                className={`w-full ${textConfig.container} ${textConfig.cardPadding} text-center transition-all duration-300 ${
+                  isTransparent
+                    ? "bg-transparent shadow-none border-0"
+                    : "bg-surface-container/95 backdrop-blur-md shadow-[8px_8px_0px_#100e09] border border-outline-variant/30"
+                }`}
+              >
                 {customText.heading && (
-                  <h1 className={`font-headline-xl ${textConfig.heading} uppercase tracking-tight text-on-surface leading-tight font-extrabold`}>
+                  <h1
+                    className={`font-headline-xl ${textConfig.heading} uppercase tracking-tight text-on-surface leading-tight font-extrabold ${
+                      isTransparent ? "drop-shadow-[4px_4px_0px_#100e09]" : ""
+                    }`}
+                  >
                     {customText.heading}
                   </h1>
                 )}
 
                 {customText.subheading && (
-                  <p className={`font-label-lg ${textConfig.subheading} text-secondary uppercase font-bold tracking-wider`}>
+                  <p
+                    className={`font-label-lg ${textConfig.subheading} text-secondary uppercase font-bold tracking-wider ${
+                      isTransparent ? "drop-shadow-[2px_2px_0px_#100e09]" : ""
+                    }`}
+                  >
                     {customText.subheading}
                   </p>
                 )}
 
                 {customText.body && (
-                  <div className={`max-w-3xl mx-auto font-body-lg ${textConfig.body} text-on-surface-variant leading-relaxed whitespace-pre-line border-t border-outline-variant/30`}>
+                  <div
+                    className={`max-w-3xl mx-auto font-body-lg ${textConfig.body} text-on-surface-variant leading-relaxed whitespace-pre-line ${
+                      isTransparent ? "border-t border-outline-variant/20 drop-shadow-[2px_2px_0px_#100e09]" : "border-t border-outline-variant/30"
+                    }`}
+                  >
                     {customText.body}
                   </div>
                 )}

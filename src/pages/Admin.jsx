@@ -1002,6 +1002,35 @@ export default function Admin() {
           </div>
         </div>
 
+        {/* Transparent / Remove Background Box Option */}
+        <div className="flex items-center justify-between p-3 bg-surface-container-lowest border border-outline-variant/30 mt-1">
+          <div>
+            <div className="font-label-md text-xs uppercase font-extrabold text-on-surface">
+              Remove Background Card Box
+            </div>
+            <div className="font-label-sm text-[11px] text-outline">
+              Removes the box container behind text, displaying text directly over the screen / audio visualizer FX.
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={async () => {
+              setLoading(true);
+              const nextVal = !counter.customText?.transparentBg;
+              await updateCustomText({ transparentBg: nextVal });
+              setLoading(false);
+              showFeedback(nextVal ? "Background card box removed!" : "Background card box restored.");
+            }}
+            className={`min-h-[38px] px-3.5 py-1.5 font-label-md text-xs uppercase font-extrabold border transition-all touch-manipulation active:scale-95 whitespace-nowrap ${
+              counter.customText?.transparentBg
+                ? "bg-secondary text-on-secondary border-secondary shadow-[2px_2px_0px_#100e09]"
+                : "bg-surface-container-highest text-outline border-outline-variant/40 hover:text-on-surface"
+            }`}
+          >
+            {counter.customText?.transparentBg ? "BOX: HIDDEN (TRANSPARENT)" : "BOX: VISIBLE"}
+          </button>
+        </div>
+
         <div className="flex flex-col sm:flex-row gap-2 justify-end mt-2">
           <button
             type="button"
