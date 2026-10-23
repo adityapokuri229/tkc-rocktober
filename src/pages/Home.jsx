@@ -44,6 +44,37 @@ const SIZE_CLASSES = {
   }
 };
 
+const CUSTOM_TEXT_SIZES = {
+  compact: {
+    container: "max-w-2xl",
+    cardPadding: "p-6 sm:p-8",
+    heading: "text-2xl sm:text-3xl md:text-4xl mb-4",
+    subheading: "text-sm sm:text-lg mb-4",
+    body: "text-sm sm:text-base pt-4"
+  },
+  medium: {
+    container: "max-w-4xl",
+    cardPadding: "p-8 sm:p-14",
+    heading: "text-3xl sm:text-5xl md:text-6xl mb-6",
+    subheading: "text-lg sm:text-2xl mb-6",
+    body: "text-base sm:text-xl pt-6"
+  },
+  large: {
+    container: "max-w-6xl",
+    cardPadding: "p-10 sm:p-20",
+    heading: "text-5xl sm:text-7xl md:text-8xl mb-8",
+    subheading: "text-2xl sm:text-3xl md:text-4xl mb-8",
+    body: "text-xl sm:text-2xl pt-8"
+  },
+  huge: {
+    container: "max-w-7xl",
+    cardPadding: "p-12 sm:p-24",
+    heading: "text-6xl sm:text-8xl md:text-9xl mb-10",
+    subheading: "text-3xl sm:text-4xl md:text-5xl mb-10",
+    body: "text-2xl sm:text-3xl pt-10"
+  }
+};
+
 export default function Home() {
   const [counterData, setCounterData] = useState(defaultState);
   const [mediaItems, setMediaItems] = useState([]);
@@ -111,23 +142,25 @@ export default function Home() {
 
   // ─── PANE 2: CUSTOM TEXT DISPLAY ───
   if (activePane === "custom") {
+    const textConfig = CUSTOM_TEXT_SIZES[customText.size || "medium"] || CUSTOM_TEXT_SIZES.medium;
+
     return (
-      <div className="bg-surface text-on-surface min-h-screen flex items-center justify-center p-6 sm:p-12">
-        <div className="w-full max-w-4xl bg-surface-container p-8 sm:p-14 shadow-[8px_8px_0px_#100e09] border border-outline-variant/30 text-center">
+      <div className="bg-surface text-on-surface min-h-screen flex items-center justify-center p-4 sm:p-12">
+        <div className={`w-full ${textConfig.container} bg-surface-container ${textConfig.cardPadding} shadow-[8px_8px_0px_#100e09] border border-outline-variant/30 text-center transition-all duration-300`}>
           {customText.heading && (
-            <h1 className="font-headline-xl text-3xl sm:text-5xl md:text-6xl uppercase tracking-tight text-on-surface mb-6 leading-tight">
+            <h1 className={`font-headline-xl ${textConfig.heading} uppercase tracking-tight text-on-surface leading-tight font-extrabold`}>
               {customText.heading}
             </h1>
           )}
 
           {customText.subheading && (
-            <p className="font-label-lg text-lg sm:text-2xl text-secondary uppercase font-bold tracking-wider mb-6">
+            <p className={`font-label-lg ${textConfig.subheading} text-secondary uppercase font-bold tracking-wider`}>
               {customText.subheading}
             </p>
           )}
 
           {customText.body && (
-            <div className="max-w-2xl mx-auto font-body-lg text-base sm:text-xl text-on-surface-variant leading-relaxed whitespace-pre-line border-t border-outline-variant/30 pt-6">
+            <div className={`max-w-3xl mx-auto font-body-lg ${textConfig.body} text-on-surface-variant leading-relaxed whitespace-pre-line border-t border-outline-variant/30`}>
               {customText.body}
             </div>
           )}

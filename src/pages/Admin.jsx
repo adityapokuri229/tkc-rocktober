@@ -822,6 +822,39 @@ export default function Admin() {
           />
         </div>
 
+        {/* Size Selector for Custom Text Pane */}
+        <div className="bg-surface-container-lowest p-3 border border-outline-variant/30 mt-1">
+          <div className="flex items-center justify-between mb-2">
+            <label className="block font-label-sm text-xs text-outline uppercase font-bold">
+              Text Slide Scale (TV Sizing)
+            </label>
+            <span className="font-label-sm text-xs text-secondary font-bold uppercase">
+              Active: {counter.customText?.size || "medium"}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {SIZES.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={async () => {
+                  setLoading(true);
+                  await updateCustomText({ size: s.id });
+                  setLoading(false);
+                  showFeedback(`Text scale set to ${s.name.toUpperCase()}!`);
+                }}
+                className={`min-h-[42px] py-2 px-3 font-label-md text-xs uppercase font-bold border transition-colors touch-manipulation active:scale-95 ${
+                  (counter.customText?.size || "medium") === s.id
+                    ? "bg-secondary text-on-secondary border-secondary shadow-[2px_2px_0px_#100e09]"
+                    : "bg-surface text-on-surface border-outline-variant/40 hover:border-secondary"
+                }`}
+              >
+                {s.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="flex flex-col sm:flex-row gap-2 justify-end mt-2">
           <button
             type="button"

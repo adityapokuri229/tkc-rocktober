@@ -24,6 +24,7 @@ export const defaultState = {
     heading: "WELCOME TO THE CONCERT",
     subheading: "Support education for the underprivileged",
     body: "Scan the QR code on your table to donate.",
+    size: "medium", // 'compact' | 'medium' | 'large' | 'huge'
     style: "highlight" // 'highlight' | 'minimal' | 'banner'
   },
   settings: {
