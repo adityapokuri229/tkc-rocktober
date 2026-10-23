@@ -31,6 +31,7 @@ export const defaultState = {
     size: "medium",
     theme: "default",
     showTarget: true,
+    bigPercentage: false,
     hideAmounts: false,
     percentageMode: false,
     barHeight: 28,

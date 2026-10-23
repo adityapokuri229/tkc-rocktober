@@ -582,7 +582,20 @@ export default function Admin() {
           </div>
         </form>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
+          <label className="flex items-center gap-3 bg-surface-container-lowest p-3 border border-outline-variant/30 cursor-pointer min-h-[48px] touch-manipulation">
+            <input
+              type="checkbox"
+              checked={!!settings.bigPercentage}
+              onChange={(e) => handleUpdateSettings({ bigPercentage: e.target.checked })}
+              className="w-5 h-5 accent-[#5dd9d0]"
+            />
+            <div>
+              <div className="font-label-md text-xs uppercase font-bold text-on-surface">Big Percentage</div>
+              <div className="font-body-sm text-[11px] text-on-surface-variant">Top-left corner display</div>
+            </div>
+          </label>
+
           <label className="flex items-center gap-3 bg-surface-container-lowest p-3 border border-outline-variant/30 cursor-pointer min-h-[48px] touch-manipulation">
             <input
               type="checkbox"

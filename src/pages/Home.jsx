@@ -153,27 +153,23 @@ export default function Home() {
   const lastWord = words.length > 1 ? words.pop() : "";
   const firstWords = words.join(" ");
 
+  const bigPercentage = !!settings.bigPercentage;
+
   return (
-    <div className="relative bg-surface font-body-md text-body-md text-on-surface antialiased min-h-screen flex items-center justify-center p-4 sm:p-8 overflow-hidden select-none">
-      {/* ─── FULL-SCREEN BACKGROUND PROGRESS WATERMARK FILL ─── */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 flex items-center justify-center">
-        {/* Fill from bottom to top based on percentage */}
-        <div
-          className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-secondary/15 via-secondary/10 to-transparent transition-all duration-1000 ease-out"
-          style={{ height: `${pct}%` }}
-        />
-
-        {/* Ambient glow line at current percentage level */}
-        <div
-          className="absolute inset-x-0 h-[2px] bg-secondary/40 shadow-[0_0_20px_#5dd9d0] transition-all duration-1000 ease-out"
-          style={{ bottom: `${pct}%` }}
-        />
-
-        {/* Massive Background Percentage Watermark */}
-        <div className="font-headline-xl font-black text-secondary/[0.07] select-none text-[32vw] tracking-tighter leading-none transform translate-y-6">
-          {Math.round(pct)}%
+    <div className="relative bg-surface font-body-md text-body-md text-on-surface antialiased min-h-screen flex items-center justify-center p-4 sm:p-8 select-none overflow-hidden">
+      {/* ─── BIG PERCENTAGE IN TOP LEFT CORNER (TOGGLED FROM ADMIN) ─── */}
+      {bigPercentage && (
+        <div className="absolute top-4 left-4 sm:top-8 sm:left-8 z-20 flex flex-col items-start leading-none pointer-events-none animate-fade-in">
+          <div className="flex items-baseline gap-1">
+            <span className="font-headline-xl text-5xl sm:text-7xl md:text-8xl font-black text-secondary tracking-tighter drop-shadow-[4px_4px_0px_#100e09]">
+              {pct}%
+            </span>
+          </div>
+          <span className="font-label-sm text-[10px] sm:text-xs text-outline uppercase tracking-widest font-bold mt-1">
+            COLLECTION PROGRESS
+          </span>
         </div>
-      </div>
+      )}
 
       {/* Main Foreground Donation Card */}
       <div className={`relative z-10 w-full ${sizeConfig.container} transition-all duration-300`}>
@@ -183,7 +179,7 @@ export default function Home() {
         </h1>
 
         {/* EXACT ORIGINAL SQUARE THERMOMETER BAR */}
-        <div className={`bg-surface-container/95 backdrop-blur-md ${sizeConfig.cardPadding} shadow-[6px_6px_0px_#100e09] border border-outline-variant/30`}>
+        <div className={`bg-surface-container ${sizeConfig.cardPadding} shadow-[6px_6px_0px_#100e09] border border-outline-variant/30`}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2.5">
             <div className="flex items-center gap-3">
               <span className={`font-label-md ${sizeConfig.label} uppercase tracking-wider text-on-surface font-bold`}>
