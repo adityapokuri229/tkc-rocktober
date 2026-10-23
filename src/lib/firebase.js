@@ -30,10 +30,14 @@ export const defaultState = {
   },
   audioFx: {
     enabled: true,
-    mode: "full", // 'spectrum' | 'pulse' | 'particles' | 'wave' | 'full'
+    mode: "full", // 'full' | 'spectrum' | 'pulse' | 'wave' | 'particles' | 'matrix' | 'tunnel'
     sensitivity: 1.2,
     reactiveCard: true,
-    simulateBeat: false
+    simulateBeat: false,
+    colorPalette: "chromatic", // 'chromatic' | 'cyberpunk' | 'sunset' | 'emerald' | 'monochrome'
+    wavePosition: "center", // 'center' | 'bottom' | 'hidden'
+    intensity: "high", // 'low' | 'medium' | 'high'
+    easterEgg: null // null | 'confetti' | 'rockhand' | 'moshpit'
   },
   settings: {
     title: "MUSIC FOR A CHANGE",
@@ -165,6 +169,14 @@ export async function updateAudioFx(audioFx) {
   };
   await update(counterRef, updates);
   return { ...current, ...updates };
+}
+
+// Trigger temporary Easter Egg effect (auto-resets after duration)
+export async function triggerEasterEgg(eggName) {
+  await updateAudioFx({ easterEgg: eggName });
+  setTimeout(() => {
+    updateAudioFx({ easterEgg: null }).catch(() => {});
+  }, 6000);
 }
 
 // Update counter state in RTDB

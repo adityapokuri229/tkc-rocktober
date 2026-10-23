@@ -9,6 +9,7 @@ import {
   deleteMediaItem,
   updateCustomText,
   updateAudioFx,
+  triggerEasterEgg,
   defaultState
 } from "../lib/firebase.js";
 
@@ -294,6 +295,21 @@ export default function Admin() {
     await updateAudioFx({ simulateBeat });
     setLoading(false);
     showFeedback(simulateBeat ? "Simulated Concert Beat activated!" : "Switched to Live Mic.");
+  };
+
+  const handleSetAudioColorPalette = async (colorPalette) => {
+    await updateAudioFx({ colorPalette });
+    showFeedback(`Visualizer color theme set to ${colorPalette.toUpperCase()}!`);
+  };
+
+  const handleSetAudioWavePosition = async (wavePosition) => {
+    await updateAudioFx({ wavePosition });
+    showFeedback(`Waveform position set to ${wavePosition.toUpperCase()}!`);
+  };
+
+  const handleFireEasterEgg = async (eggName) => {
+    await triggerEasterEgg(eggName);
+    showFeedback(`🎉 Easter Egg fired: ${eggName.toUpperCase()}!`);
   };
 
   // ─── 1. PASSWORD GATE WITH NUMERIC KEYPAD ───
@@ -693,18 +709,20 @@ export default function Admin() {
 
           {counter.audioFx?.enabled && (
             <div className="space-y-3 pt-2 border-t border-outline-variant/20 animate-fade-in">
-              {/* FX Mode Selector */}
+              {/* Extended FX Mode Selector */}
               <div>
                 <label className="block font-label-sm text-[11px] text-outline uppercase font-bold mb-1.5">
                   Visualizer FX Mode
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                   {[
                     { id: "full", label: "⚡ Full Rave" },
-                    { id: "spectrum", label: "📊 Spectrum" },
+                    { id: "wave", label: "🌊 Liquid Wave" },
+                    { id: "spectrum", label: "📊 Equalizer" },
                     { id: "pulse", label: "💥 Bass Pulse" },
-                    { id: "particles", label: "✨ Beat Sparks" },
-                    { id: "wave", label: "🌊 Soundwave" }
+                    { id: "particles", label: "✨ Stardust" },
+                    { id: "matrix", label: "🌌 Matrix Rain" },
+                    { id: "tunnel", label: "🌀 Warp Tunnel" }
                   ].map((m) => (
                     <button
                       key={m.id}
@@ -722,28 +740,116 @@ export default function Admin() {
                 </div>
               </div>
 
-              {/* Sensitivity Slider */}
+              {/* Color Theme Selector */}
               <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="font-label-sm text-[11px] text-outline uppercase font-bold">
-                    Microphone Pickup Sensitivity
-                  </label>
-                  <span className="font-label-sm text-xs text-secondary font-bold">
-                    {(counter.audioFx?.sensitivity || 1.2).toFixed(1)}x
-                  </span>
+                <label className="block font-label-sm text-[11px] text-outline uppercase font-bold mb-1.5">
+                  Visualizer Color Theme
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
+                  {[
+                    { id: "chromatic", label: "🌈 Rainbow Morph" },
+                    { id: "cyberpunk", label: "⚡ Cyberpunk" },
+                    { id: "sunset", label: "🔥 Sunset Gold" },
+                    { id: "emerald", label: "🟢 Matrix Green" },
+                    { id: "monochrome", label: "⚪ Ice Diamond" }
+                  ].map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => handleSetAudioColorPalette(p.id)}
+                      className={`min-h-[36px] py-1 px-1.5 font-label-md text-[11px] uppercase font-bold border transition-colors touch-manipulation active:scale-95 truncate ${
+                        (counter.audioFx?.colorPalette || "chromatic") === p.id
+                          ? "bg-secondary text-on-secondary border-secondary shadow-[2px_2px_0px_#100e09]"
+                          : "bg-surface text-on-surface border-outline-variant/30 hover:border-secondary"
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
                 </div>
-                <input
-                  type="range"
-                  min="0.4"
-                  max="3.0"
-                  step="0.1"
-                  value={counter.audioFx?.sensitivity || 1.2}
-                  onChange={(e) => handleSetAudioSensitivity(e.target.value)}
-                  className="w-full accent-[#5dd9d0] cursor-pointer min-h-[32px]"
-                />
-                <div className="flex justify-between text-[10px] font-label-sm text-outline uppercase">
-                  <span>Loud Rock Band (0.5x)</span>
-                  <span>Acoustic / Vocals (1.5x - 3.0x)</span>
+              </div>
+
+              {/* Waveform Position & Screen Layout */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="block font-label-sm text-[11px] text-outline uppercase font-bold mb-1">
+                    Waveform Position
+                  </label>
+                  <div className="grid grid-cols-3 gap-1">
+                    {[
+                      { id: "center", label: "Center" },
+                      { id: "bottom", label: "Bottom Dock" },
+                      { id: "hidden", label: "Hide Wave" }
+                    ].map((pos) => (
+                      <button
+                        key={pos.id}
+                        type="button"
+                        onClick={() => handleSetAudioWavePosition(pos.id)}
+                        className={`min-h-[34px] py-1 px-1 text-[11px] font-label-md uppercase font-bold border transition-colors touch-manipulation active:scale-95 ${
+                          (counter.audioFx?.wavePosition || "center") === pos.id
+                            ? "bg-secondary text-on-secondary border-secondary"
+                            : "bg-surface text-on-surface border-outline-variant/30 hover:border-secondary"
+                        }`}
+                      >
+                        {pos.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Sensitivity Slider */}
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="font-label-sm text-[11px] text-outline uppercase font-bold">
+                      Microphone Sensitivity: {(counter.audioFx?.sensitivity || 1.2).toFixed(1)}x
+                    </label>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.4"
+                    max="3.0"
+                    step="0.1"
+                    value={counter.audioFx?.sensitivity || 1.2}
+                    onChange={(e) => handleSetAudioSensitivity(e.target.value)}
+                    className="w-full accent-[#5dd9d0] cursor-pointer min-h-[32px]"
+                  />
+                  <div className="flex justify-between text-[9px] font-label-sm text-outline uppercase">
+                    <span>Loud Band (0.5x)</span>
+                    <span>Vocals (2.0x+)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Secret Live Concert Easter Eggs */}
+              <div className="p-2.5 bg-surface-container-lowest border border-secondary/30">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="font-label-md text-xs uppercase font-extrabold text-secondary flex items-center gap-1.5">
+                    <span>🔥</span> LIVE CONCERT EASTER EGGS (TAP TO TRIGGER ON TV):
+                  </div>
+                  <span className="text-[10px] text-outline font-bold uppercase">5s Burst</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleFireEasterEgg("confetti")}
+                    className="min-h-[40px] py-1.5 px-2 bg-surface hover:bg-secondary hover:text-on-secondary text-on-surface font-label-md text-xs font-bold uppercase border border-outline-variant/40 shadow-[2px_2px_0px_#100e09] active:scale-95 touch-manipulation transition-colors"
+                  >
+                    🎉 Confetti Blast
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleFireEasterEgg("rockhand")}
+                    className="min-h-[40px] py-1.5 px-2 bg-surface hover:bg-secondary hover:text-on-secondary text-on-surface font-label-md text-xs font-bold uppercase border border-outline-variant/40 shadow-[2px_2px_0px_#100e09] active:scale-95 touch-manipulation transition-colors"
+                  >
+                    🤘 Rock Hand Aura
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleFireEasterEgg("moshpit")}
+                    className="min-h-[40px] py-1.5 px-2 bg-surface hover:bg-secondary hover:text-on-secondary text-on-surface font-label-md text-xs font-bold uppercase border border-outline-variant/40 shadow-[2px_2px_0px_#100e09] active:scale-95 touch-manipulation transition-colors"
+                  >
+                    ⚡ Moshpit Strobe
+                  </button>
                 </div>
               </div>
 
