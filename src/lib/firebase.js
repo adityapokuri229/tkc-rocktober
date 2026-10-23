@@ -31,7 +31,8 @@ export const defaultState = {
     enabled: true,
     mode: "full", // 'spectrum' | 'pulse' | 'particles' | 'wave' | 'full'
     sensitivity: 1.2,
-    reactiveCard: true
+    reactiveCard: true,
+    simulateBeat: false
   },
   settings: {
     title: "MUSIC FOR A CHANGE",

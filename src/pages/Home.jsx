@@ -50,7 +50,7 @@ const CUSTOM_TEXT_SIZES = {
     container: "max-w-2xl",
     cardPadding: "p-6 sm:p-8",
     heading: "text-2xl sm:text-3xl md:text-4xl mb-4",
-    subheading: "text-sm sm:text-lg mb-4",
+    subheading: "text-sm sm:lg mb-4",
     body: "text-sm sm:text-base pt-4"
   },
   medium: {
@@ -99,165 +99,170 @@ export default function Home() {
   const selectedMedia = mediaItems.find((m) => m.id === counterData.selectedMediaId) || mediaItems[0];
   const customText = counterData.customText || defaultState.customText;
 
-  // ─── PANE 1: MEDIA DISPLAY (IMAGE / VIDEO - FULL SCREEN / FULL SIZE) ───
-  if (activePane === "media") {
-    if (!selectedMedia) {
-      return (
-        <div className="bg-surface text-on-surface min-h-screen flex items-center justify-center p-8">
-          <div className="bg-surface-container p-8 shadow-[6px_6px_0px_#100e09] border border-outline-variant/30 text-center max-w-md">
-            <span className="text-secondary font-label-md text-sm uppercase font-bold tracking-widest block mb-2">
-              MEDIA PANE ACTIVE
-            </span>
-            <p className="font-body-md text-sm text-outline">
-              No media selected in Admin yet. Upload or select an image/video from the Admin panel.
-            </p>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="bg-surface min-h-screen w-screen h-screen flex items-center justify-center p-0 m-0 select-none overflow-hidden fixed inset-0">
-        <div className="w-full h-full flex items-center justify-center bg-black">
-          {selectedMedia.type === "video" ? (
-            <video
-              src={selectedMedia.url}
-              controls
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="w-full h-full object-contain"
-            />
-          ) : (
-            <img
-              src={selectedMedia.url}
-              alt={selectedMedia.name || "Concert Visual"}
-              className="w-full h-full object-contain"
-            />
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // ─── PANE 2: CUSTOM TEXT DISPLAY ───
-  if (activePane === "custom") {
-    const textConfig = CUSTOM_TEXT_SIZES[customText.size || "medium"] || CUSTOM_TEXT_SIZES.medium;
-
-    return (
-      <div className="bg-surface text-on-surface min-h-screen flex items-center justify-center p-4 sm:p-12">
-        <div className={`w-full ${textConfig.container} bg-surface-container ${textConfig.cardPadding} shadow-[8px_8px_0px_#100e09] border border-outline-variant/30 text-center transition-all duration-300`}>
-          {customText.heading && (
-            <h1 className={`font-headline-xl ${textConfig.heading} uppercase tracking-tight text-on-surface leading-tight font-extrabold`}>
-              {customText.heading}
-            </h1>
-          )}
-
-          {customText.subheading && (
-            <p className={`font-label-lg ${textConfig.subheading} text-secondary uppercase font-bold tracking-wider`}>
-              {customText.subheading}
-            </p>
-          )}
-
-          {customText.body && (
-            <div className={`max-w-3xl mx-auto font-body-lg ${textConfig.body} text-on-surface-variant leading-relaxed whitespace-pre-line border-t border-outline-variant/30`}>
-              {customText.body}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // ─── PANE 3: DONATION COUNTER (DEFAULT) ───
-  const raised = Number(counterData.raised || 0);
-  const goal = Number(counterData.goal || 150000);
-  const pct = goal ? Math.min(100, ((raised / goal) * 100)).toFixed(1) : 0;
-  const raisedFmt = raised.toLocaleString("en-IN");
-  const settings = counterData.settings || {};
-  const sizeKey = settings.size || "medium";
-  const sizeConfig = SIZE_CLASSES[sizeKey] || SIZE_CLASSES.medium;
-  const barHeight = Math.max(settings.barHeight || 28, sizeConfig.barMinHeight);
-  const hideAmounts = settings.hideAmounts;
-  const percentageMode = settings.percentageMode;
-  const title = settings.title || "MUSIC FOR A CHANGE";
-
-  const words = title.trim().split(" ");
-  const lastWord = words.length > 1 ? words.pop() : "";
-  const firstWords = words.join(" ");
-
-  const bigPercentage = !!settings.bigPercentage;
-
+  // Render pane content inside a consistent root layout that houses AudioVisualizerCanvas
   return (
-    <div className="relative bg-surface font-body-md text-body-md text-on-surface antialiased min-h-screen flex items-center justify-center p-4 sm:p-8 select-none overflow-hidden">
-      {/* ─── LIVE AUDIO-REACTIVE VISUAL FX OVERLAY ─── */}
+    <div className="relative min-h-screen w-screen h-screen overflow-hidden bg-surface select-none">
+      {/* ─── UNIVERSAL AUDIO-REACTIVE VISUAL FX OVERLAY (ACROSS ALL PANES) ─── */}
       <AudioVisualizerCanvas audioFx={counterData.audioFx} />
 
-      {/* ─── BIG PERCENTAGE IN TOP LEFT CORNER (TOGGLED FROM ADMIN) ─── */}
-      {bigPercentage && (
-        <div className="absolute top-5 left-5 sm:top-10 sm:left-10 z-20 flex flex-col items-start leading-none pointer-events-none animate-fade-in">
-          <div className="flex items-baseline gap-1">
-            <span className="font-headline-xl text-6xl sm:text-8xl md:text-9xl font-black text-secondary tracking-tighter drop-shadow-[5px_5px_0px_#100e09]">
-              {pct}%
-            </span>
-          </div>
-          <span className="font-label-sm text-xs sm:text-sm text-outline uppercase tracking-widest font-bold mt-1.5">
-            COLLECTION PROGRESS
-          </span>
+      {/* ─── PANE 1: MEDIA DISPLAY (IMAGE / VIDEO) ─── */}
+      {activePane === "media" && (
+        <div className="relative z-10 w-full h-full flex items-center justify-center">
+          {!selectedMedia ? (
+            <div className="bg-surface-container p-8 shadow-[6px_6px_0px_#100e09] border border-outline-variant/30 text-center max-w-md">
+              <span className="text-secondary font-label-md text-sm uppercase font-bold tracking-widest block mb-2">
+                MEDIA PANE ACTIVE
+              </span>
+              <p className="font-body-md text-sm text-outline">
+                No media selected in Admin yet. Upload or select an image/video from the Admin panel.
+              </p>
+            </div>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-black/60 backdrop-blur-[2px]">
+              {selectedMedia.type === "video" ? (
+                <video
+                  src={selectedMedia.url}
+                  controls
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <img
+                  src={selectedMedia.url}
+                  alt={selectedMedia.name || "Concert Visual"}
+                  className="w-full h-full object-contain"
+                />
+              )}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Main Foreground Donation Card */}
-      <div className={`relative z-10 w-full ${sizeConfig.container} transition-all duration-300`}>
-        {/* Main Heading Text */}
-        <h1 className={`font-headline-lg ${sizeConfig.title} uppercase tracking-tight text-on-surface text-center sm:text-left font-extrabold`}>
-          {firstWords ? `${firstWords} ` : ""}<span className="text-secondary">{lastWord || title}</span>
-        </h1>
+      {/* ─── PANE 2: CUSTOM TEXT DISPLAY ─── */}
+      {activePane === "custom" && (
+        <div className="relative z-10 w-full h-full flex items-center justify-center p-4 sm:p-12">
+          {(() => {
+            const textConfig = CUSTOM_TEXT_SIZES[customText.size || "medium"] || CUSTOM_TEXT_SIZES.medium;
+            return (
+              <div className={`w-full ${textConfig.container} bg-surface-container/95 backdrop-blur-md ${textConfig.cardPadding} shadow-[8px_8px_0px_#100e09] border border-outline-variant/30 text-center transition-all duration-300`}>
+                {customText.heading && (
+                  <h1 className={`font-headline-xl ${textConfig.heading} uppercase tracking-tight text-on-surface leading-tight font-extrabold`}>
+                    {customText.heading}
+                  </h1>
+                )}
 
-        {/* EXACT ORIGINAL SQUARE THERMOMETER BAR */}
-        <div className={`bg-surface-container ${sizeConfig.cardPadding} shadow-[6px_6px_0px_#100e09] border border-outline-variant/30`}>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2.5">
-            <div className="flex items-center gap-3">
-              <span className={`font-label-md ${sizeConfig.label} uppercase tracking-wider text-on-surface font-bold`}>
-                CROWDFUND PROGRESS
-              </span>
-              <span className={`bg-secondary-container text-on-secondary font-label-md ${sizeConfig.pctBadge} font-extrabold tracking-wide`}>
-                {pct}% REACHED
-              </span>
-            </div>
-            {!hideAmounts && (
-              <div className={`font-label-lg ${sizeConfig.tally} text-secondary tracking-wider font-extrabold`}>
-                {percentageMode ? `${pct}%` : `₹${raisedFmt} RAISED`}
+                {customText.subheading && (
+                  <p className={`font-label-lg ${textConfig.subheading} text-secondary uppercase font-bold tracking-wider`}>
+                    {customText.subheading}
+                  </p>
+                )}
+
+                {customText.body && (
+                  <div className={`max-w-3xl mx-auto font-body-lg ${textConfig.body} text-on-surface-variant leading-relaxed whitespace-pre-line border-t border-outline-variant/30`}>
+                    {customText.body}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-
-          {/* Meter Bar: Strict sharp rectangle/square bar */}
-          <div
-            className="w-full bg-surface-container-lowest p-1.5 shadow-inner"
-            style={{ height: `${barHeight}px` }}
-          >
-            <div
-              className="h-full bg-gradient-to-r from-secondary to-tertiary transition-all duration-700 ease-out"
-              style={{ width: `${pct}%` }}
-            ></div>
-          </div>
-
-          {/* Target Goal & Remaining Display (Controlled by showTarget toggle) */}
-          {settings.showTarget !== false && !hideAmounts && (
-            <div className={`flex justify-between items-center mt-3 pt-2.5 border-t border-outline-variant/20 font-label-md ${sizeConfig.targetText} uppercase tracking-wider text-outline`}>
-              <span className="flex items-center gap-2 font-bold text-on-surface-variant">
-                <span className="w-2 h-2 bg-secondary inline-block"></span>
-                TARGET: ₹{goal.toLocaleString("en-IN")}
-              </span>
-              <span className="font-bold text-secondary">
-                REMAINING: ₹{Math.max(0, goal - raised).toLocaleString("en-IN")}
-              </span>
-            </div>
-          )}
+            );
+          })()}
         </div>
-      </div>
+      )}
+
+      {/* ─── PANE 3: DONATION COUNTER (DEFAULT) ─── */}
+      {activePane === "counter" && (
+        <div className="relative z-10 w-full h-full flex items-center justify-center p-4 sm:p-8">
+          {(() => {
+            const raised = Number(counterData.raised || 0);
+            const goal = Number(counterData.goal || 150000);
+            const pct = goal ? Math.min(100, ((raised / goal) * 100)).toFixed(1) : 0;
+            const raisedFmt = raised.toLocaleString("en-IN");
+            const settings = counterData.settings || {};
+            const sizeKey = settings.size || "medium";
+            const sizeConfig = SIZE_CLASSES[sizeKey] || SIZE_CLASSES.medium;
+            const barHeight = Math.max(settings.barHeight || 28, sizeConfig.barMinHeight);
+            const hideAmounts = settings.hideAmounts;
+            const percentageMode = settings.percentageMode;
+            const title = settings.title || "MUSIC FOR A CHANGE";
+
+            const words = title.trim().split(" ");
+            const lastWord = words.length > 1 ? words.pop() : "";
+            const firstWords = words.join(" ");
+            const bigPercentage = !!settings.bigPercentage;
+
+            return (
+              <>
+                {/* BIG PERCENTAGE IN TOP LEFT CORNER (TOGGLED FROM ADMIN) */}
+                {bigPercentage && (
+                  <div className="absolute top-5 left-5 sm:top-10 sm:left-10 z-20 flex flex-col items-start leading-none pointer-events-none animate-fade-in">
+                    <div className="flex items-baseline gap-1">
+                      <span className="font-headline-xl text-6xl sm:text-8xl md:text-9xl font-black text-secondary tracking-tighter drop-shadow-[5px_5px_0px_#100e09]">
+                        {pct}%
+                      </span>
+                    </div>
+                    <span className="font-label-sm text-xs sm:text-sm text-outline uppercase tracking-widest font-bold mt-1.5">
+                      COLLECTION PROGRESS
+                    </span>
+                  </div>
+                )}
+
+                {/* Main Foreground Donation Card */}
+                <div className={`relative z-10 w-full ${sizeConfig.container} transition-all duration-300`}>
+                  {/* Main Heading Text */}
+                  <h1 className={`font-headline-lg ${sizeConfig.title} uppercase tracking-tight text-on-surface text-center sm:text-left font-extrabold`}>
+                    {firstWords ? `${firstWords} ` : ""}<span className="text-secondary">{lastWord || title}</span>
+                  </h1>
+
+                  {/* Meter Card */}
+                  <div className={`bg-surface-container ${sizeConfig.cardPadding} shadow-[6px_6px_0px_#100e09] border border-outline-variant/30`}>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2.5">
+                      <div className="flex items-center gap-3">
+                        <span className={`font-label-md ${sizeConfig.label} uppercase tracking-wider text-on-surface font-bold`}>
+                          CROWDFUND PROGRESS
+                        </span>
+                        <span className={`bg-secondary-container text-on-secondary font-label-md ${sizeConfig.pctBadge} font-extrabold tracking-wide`}>
+                          {pct}% REACHED
+                        </span>
+                      </div>
+                      {!hideAmounts && (
+                        <div className={`font-label-lg ${sizeConfig.tally} text-secondary tracking-wider font-extrabold`}>
+                          {percentageMode ? `${pct}%` : `₹${raisedFmt} RAISED`}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Meter Bar: Strict sharp rectangle/square bar */}
+                    <div
+                      className="w-full bg-surface-container-lowest p-1.5 shadow-inner"
+                      style={{ height: `${barHeight}px` }}
+                    >
+                      <div
+                        className="h-full bg-gradient-to-r from-secondary to-tertiary transition-all duration-700 ease-out"
+                        style={{ width: `${pct}%` }}
+                      ></div>
+                    </div>
+
+                    {/* Target Goal & Remaining Display */}
+                    {settings.showTarget !== false && !hideAmounts && (
+                      <div className={`flex justify-between items-center mt-3 pt-2.5 border-t border-outline-variant/20 font-label-md ${sizeConfig.targetText} uppercase tracking-wider text-outline`}>
+                        <span className="flex items-center gap-2 font-bold text-on-surface-variant">
+                          <span className="w-2 h-2 bg-secondary inline-block"></span>
+                          TARGET: ₹{goal.toLocaleString("en-IN")}
+                        </span>
+                        <span className="font-bold text-secondary">
+                          REMAINING: ₹{Math.max(0, goal - raised).toLocaleString("en-IN")}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      )}
     </div>
   );
 }

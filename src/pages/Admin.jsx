@@ -289,6 +289,13 @@ export default function Admin() {
     await updateAudioFx({ sensitivity: Number(sensitivity) });
   };
 
+  const handleToggleSimulateBeat = async (simulateBeat) => {
+    setLoading(true);
+    await updateAudioFx({ simulateBeat });
+    setLoading(false);
+    showFeedback(simulateBeat ? "Simulated Concert Beat activated!" : "Switched to Live Mic.");
+  };
+
   // ─── 1. PASSWORD GATE WITH NUMERIC KEYPAD ───
   if (!isAuthenticated) {
     return (
@@ -738,6 +745,39 @@ export default function Admin() {
                   <span>Loud Rock Band (0.5x)</span>
                   <span>Acoustic / Vocals (1.5x - 3.0x)</span>
                 </div>
+              </div>
+
+              {/* Demo Beat Simulator Mode Toggle */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-2.5 bg-surface-container-lowest border border-outline-variant/30">
+                <div>
+                  <div className="font-label-md text-xs uppercase font-extrabold text-on-surface">
+                    Test Beat Simulator (Offline Preview)
+                  </div>
+                  <div className="font-label-sm text-[11px] text-outline">
+                    Simulates a 128 BPM concert kick &amp; bassline on the TV without needing live sound.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleToggleSimulateBeat(!counter.audioFx?.simulateBeat)}
+                  className={`min-h-[36px] px-3 py-1 font-label-md text-xs uppercase font-extrabold border transition-all touch-manipulation active:scale-95 whitespace-nowrap ${
+                    counter.audioFx?.simulateBeat
+                      ? "bg-secondary text-on-secondary border-secondary shadow-[2px_2px_0px_#100e09]"
+                      : "bg-surface-container-highest text-outline border-outline-variant/40 hover:text-on-surface"
+                  }`}
+                >
+                  {counter.audioFx?.simulateBeat ? "⚡ SIMULATOR ON" : "SIMULATE BEAT"}
+                </button>
+              </div>
+
+              {/* Audio Source Quick Guide */}
+              <div className="p-2.5 bg-surface-container-lowest/60 border border-secondary/20 text-[11px] text-outline space-y-1">
+                <span className="text-secondary font-bold uppercase tracking-wider block">
+                  💡 Live Concert Audio Tip:
+                </span>
+                <p>
+                  Microphone/line-in is captured by the <strong>display laptop or device connected to the TV/projector</strong>. Open the main screen, click anywhere on the page to grant mic access, and the visualizer will pulse to the venue speakers!
+                </p>
               </div>
             </div>
           )}

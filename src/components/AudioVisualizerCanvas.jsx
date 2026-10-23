@@ -3,33 +3,41 @@ import { audioEngine } from "../lib/audioEngine.js";
 
 export default function AudioVisualizerCanvas({ audioFx }) {
   const canvasRef = useRef(null);
-  const [hasMicAccess, setHasMicAccess] = useState(audioEngine.isListening);
+  const [hasMicAccess, setHasMicAccess] = useState(audioEngine.isListening || audioEngine.simulate);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [vuLevel, setVuLevel] = useState(0);
   const particlesRef = useRef([]);
 
+  // Subscribe to engine state
   useEffect(() => {
-    const unsub = audioEngine.subscribe((listening) => {
-      setHasMicAccess(listening);
-      if (listening) setShowPrompt(false);
+    audioEngine.setupGestureUnlock();
+    const unsub = audioEngine.subscribe((active) => {
+      setHasMicAccess(active);
+      if (active) setShowPrompt(false);
     });
     return unsub;
   }, []);
 
-  // When audioFx is enabled, prompt user to enable mic if not already started
+  // Sync sensitivity and simulation mode from Firebase
   useEffect(() => {
-    if (audioFx?.enabled) {
-      audioEngine.setSensitivity(audioFx.sensitivity || 1.2);
-      if (!audioEngine.isListening) {
-        // Try auto-starting if permission already granted
-        audioEngine.start(audioFx.sensitivity || 1.2).then((ok) => {
-          if (!ok) setShowPrompt(true);
-        });
-      }
-    } else {
+    if (!audioFx) return;
+
+    audioEngine.setSensitivity(audioFx.sensitivity || 1.2);
+    audioEngine.setSimulate(!!audioFx.simulateBeat);
+
+    if (audioFx.enabled && !audioFx.simulateBeat && !audioEngine.isListening) {
+      // Try auto-starting (works automatically if permissions were previously saved)
+      audioEngine.start(audioFx.sensitivity || 1.2).then((ok) => {
+        if (!ok) {
+          setShowPrompt(true);
+        }
+      });
+    } else if (!audioFx.enabled) {
       setShowPrompt(false);
     }
-  }, [audioFx?.enabled, audioFx?.sensitivity]);
+  }, [audioFx?.enabled, audioFx?.sensitivity, audioFx?.simulateBeat]);
 
+  // Main 60 FPS Canvas Rendering Loop
   useEffect(() => {
     if (!audioFx?.enabled) return;
 
@@ -37,6 +45,7 @@ export default function AudioVisualizerCanvas({ audioFx }) {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     let animId;
+    let frameCount = 0;
 
     const resize = () => {
       canvas.width = window.innerWidth;
@@ -45,7 +54,6 @@ export default function AudioVisualizerCanvas({ audioFx }) {
     resize();
     window.addEventListener("resize", resize);
 
-    // Initialize/maintain particle pool for beats
     const particles = particlesRef.current;
 
     const render = () => {
@@ -58,6 +66,12 @@ export default function AudioVisualizerCanvas({ audioFx }) {
       const metrics = audioEngine.getMetrics();
       const mode = audioFx.mode || "full";
 
+      // Periodically update VU meter for UI badge (every 6 frames ~ 100ms)
+      frameCount++;
+      if (frameCount % 6 === 0) {
+        setVuLevel(metrics.rawVolume || 0);
+      }
+
       // ─── BEAT PARTICLE EMISSION ───
       if (metrics.beatDetected && (mode === "particles" || mode === "full")) {
         const burstCount = 18;
@@ -65,13 +79,13 @@ export default function AudioVisualizerCanvas({ audioFx }) {
         const originY = height / 2;
         for (let i = 0; i < burstCount; i++) {
           const angle = Math.random() * Math.PI * 2;
-          const speed = 3 + Math.random() * 8;
+          const speed = 4 + Math.random() * 9;
           particles.push({
             x: originX,
             y: originY,
             vx: Math.cos(angle) * speed,
             vy: Math.sin(angle) * speed,
-            size: 3 + Math.random() * 6,
+            size: 3 + Math.random() * 7,
             life: 1.0,
             decay: 0.015 + Math.random() * 0.02,
             color: Math.random() > 0.4 ? "#5dd9d0" : "#ffb2b6"
@@ -90,8 +104,8 @@ export default function AudioVisualizerCanvas({ audioFx }) {
           height / 2,
           radius
         );
-        grad.addColorStop(0, `rgba(93, 217, 208, ${Math.min(0.28, metrics.bass * 0.22)})`);
-        grad.addColorStop(0.5, `rgba(199, 191, 255, ${Math.min(0.18, metrics.mid * 0.15)})`);
+        grad.addColorStop(0, `rgba(93, 217, 208, ${Math.min(0.35, metrics.bass * 0.28)})`);
+        grad.addColorStop(0.5, `rgba(199, 191, 255, ${Math.min(0.24, metrics.mid * 0.2)})`);
         grad.addColorStop(1, "rgba(21, 19, 14, 0)");
 
         ctx.fillStyle = grad;
@@ -106,23 +120,20 @@ export default function AudioVisualizerCanvas({ audioFx }) {
 
         for (let i = 0; i < binCount; i++) {
           const val = (data[i] || 0) / 255;
-          const barHeight = val * height * 0.35 * (audioFx.sensitivity || 1.2);
+          const barHeight = val * height * 0.38 * (audioFx.sensitivity || 1.2);
 
-          // Mirror bars across top or bottom
           const x = i * barWidth;
           const y = height - barHeight;
 
-          // Cyber gradient
           const barGrad = ctx.createLinearGradient(x, y, x, height);
-          barGrad.addColorStop(0, "rgba(93, 217, 208, 0.85)"); // secondary cyan
-          barGrad.addColorStop(0.6, "rgba(199, 191, 255, 0.45)"); // primary
+          barGrad.addColorStop(0, "rgba(93, 217, 208, 0.9)");
+          barGrad.addColorStop(0.6, "rgba(199, 191, 255, 0.5)");
           barGrad.addColorStop(1, "rgba(21, 19, 14, 0.1)");
 
           ctx.fillStyle = barGrad;
           ctx.fillRect(x + 1, y, barWidth - 2, barHeight);
 
-          // Top peak dot
-          if (val > 0.2) {
+          if (val > 0.18) {
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(x + 1, y - 3, barWidth - 2, 2);
           }
@@ -134,7 +145,7 @@ export default function AudioVisualizerCanvas({ audioFx }) {
         const timeData = metrics.timeDomainArray;
         ctx.beginPath();
         ctx.lineWidth = 3;
-        ctx.strokeStyle = "rgba(93, 217, 208, 0.75)";
+        ctx.strokeStyle = "rgba(93, 217, 208, 0.8)";
         ctx.shadowColor = "#5dd9d0";
         ctx.shadowBlur = 12;
 
@@ -152,7 +163,7 @@ export default function AudioVisualizerCanvas({ audioFx }) {
         }
 
         ctx.stroke();
-        ctx.shadowBlur = 0; // reset
+        ctx.shadowBlur = 0;
       }
 
       // ─── 4. RENDER & UPDATE PARTICLES ───
@@ -185,7 +196,7 @@ export default function AudioVisualizerCanvas({ audioFx }) {
       cancelAnimationFrame(animId);
       window.removeEventListener("resize", resize);
     };
-  }, [audioFx?.enabled, audioFx?.mode, audioFx?.sensitivity]);
+  }, [audioFx?.enabled, audioFx?.mode, audioFx?.sensitivity, audioFx?.simulateBeat]);
 
   if (!audioFx?.enabled) return null;
 
@@ -196,20 +207,42 @@ export default function AudioVisualizerCanvas({ audioFx }) {
         className="fixed inset-0 pointer-events-none z-0 w-full h-full"
       />
 
-      {/* Discrete 1-Tap Mic Activation Prompt if permission not yet granted */}
+      {/* Discrete Screen Click-to-Start Banner (if browser blocked automatic mic capture) */}
       {showPrompt && !hasMicAccess && (
-        <div className="fixed bottom-6 right-6 z-50 animate-bounce">
-          <button
-            type="button"
-            onClick={async () => {
-              const ok = await audioEngine.start(audioFx.sensitivity || 1.2);
-              if (ok) setShowPrompt(false);
-            }}
-            className="flex items-center gap-2.5 bg-surface-container border border-secondary text-secondary font-label-md text-xs uppercase font-extrabold px-4 py-2.5 shadow-[4px_4px_0px_#100e09] hover:bg-secondary hover:text-on-secondary transition-all cursor-pointer"
-          >
-            <span className="text-base animate-pulse">🎙️</span>
-            <span>Enable Live Audio FX</span>
-          </button>
+        <div
+          onClick={async () => {
+            const ok = await audioEngine.start(audioFx.sensitivity || 1.2);
+            if (ok) setShowPrompt(false);
+          }}
+          className="fixed inset-x-0 bottom-4 sm:bottom-8 z-50 flex justify-center px-4 cursor-pointer animate-bounce"
+        >
+          <div className="bg-surface-container-highest border-2 border-secondary text-secondary px-6 py-3 shadow-[6px_6px_0px_#100e09] flex items-center gap-3">
+            <span className="text-xl animate-pulse">🎙️</span>
+            <div>
+              <p className="font-label-md text-xs sm:text-sm uppercase font-extrabold tracking-wider">
+                AUDIO FX READY — CLICK ANYWHERE TO ACTIVATE MIC
+              </p>
+              <p className="text-[11px] text-on-surface-variant normal-case">
+                Browser audio requires 1 user click to capture live stage sound.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Live Input Signal Badge in Bottom Right */}
+      {hasMicAccess && (
+        <div className="fixed bottom-4 right-4 z-40 bg-surface-container/85 border border-outline-variant/40 px-3 py-1.5 shadow-[3px_3px_0px_#100e09] pointer-events-none flex items-center gap-2.5 backdrop-blur-sm">
+          <span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+          <span className="font-label-sm text-[10px] uppercase font-bold tracking-widest text-outline">
+            {audioFx.simulateBeat ? "DEMO BEAT" : "LIVE MIC"}
+          </span>
+          <div className="w-12 h-2 bg-surface-container-lowest border border-outline-variant/30 overflow-hidden">
+            <div
+              className="h-full bg-secondary transition-all duration-75"
+              style={{ width: `${Math.min(100, vuLevel)}%` }}
+            ></div>
+          </div>
         </div>
       )}
     </>
