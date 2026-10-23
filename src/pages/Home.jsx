@@ -159,13 +159,13 @@ export default function Home() {
     <div className="relative bg-surface font-body-md text-body-md text-on-surface antialiased min-h-screen flex items-center justify-center p-4 sm:p-8 select-none overflow-hidden">
       {/* ─── BIG PERCENTAGE IN TOP LEFT CORNER (TOGGLED FROM ADMIN) ─── */}
       {bigPercentage && (
-        <div className="absolute top-4 left-4 sm:top-8 sm:left-8 z-20 flex flex-col items-start leading-none pointer-events-none animate-fade-in">
+        <div className="absolute top-5 left-5 sm:top-10 sm:left-10 z-20 flex flex-col items-start leading-none pointer-events-none animate-fade-in">
           <div className="flex items-baseline gap-1">
-            <span className="font-headline-xl text-5xl sm:text-7xl md:text-8xl font-black text-secondary tracking-tighter drop-shadow-[4px_4px_0px_#100e09]">
+            <span className="font-headline-xl text-6xl sm:text-8xl md:text-9xl font-black text-secondary tracking-tighter drop-shadow-[5px_5px_0px_#100e09]">
               {pct}%
             </span>
           </div>
-          <span className="font-label-sm text-[10px] sm:text-xs text-outline uppercase tracking-widest font-bold mt-1">
+          <span className="font-label-sm text-xs sm:text-sm text-outline uppercase tracking-widest font-bold mt-1.5">
             COLLECTION PROGRESS
           </span>
         </div>
